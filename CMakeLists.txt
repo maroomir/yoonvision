@@ -1,28 +1,39 @@
-cmake_minimum_required(VERSION 3.10)
-project(yoonimage)
+cmake_minimum_required(VERSION 3.14)
+project(yoonvision VERSION 0.1.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Package 찾기
+option(BUILD_TESTS "Build test target" ON)
+
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/preset.cmake)
+
 include(FindPkgConfig)
-pkg_check_modules(PROJECT_PKGS REQUIRED
-        ${BUILD_DEPENNDS}
-        libjpeg)
-message("-- includes=${PROJECT_PKGS_INCLUDE_DIRS}")
-message("-- ldflags=${PROJECT_PKGS_LDFLAGS}")
+pkg_check_modules(JPEG REQUIRED libjpeg)
 
-# include directory 설정
-include_directories(${CMAKE_SOURCE_DIR}/include)
+file(GLOB_RECURSE YOONVISION_SOURCES CONFIGURE_DEPENDS src/*.cpp)
 
-# yoonimage 라이브러리 생성
-file(GLOB_RECURSE PROJECT_SOURCES src/*.cpp)
-add_library(${PROJECT_NAME} ${PROJECT_SOURCES})
+add_library(yoonvision ${YOONVISION_SOURCES})
+add_library(yoonimage ALIAS yoonvision)
 
-# target include 설정
-target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_PKGS_INCLUDE_DIRS})
+target_include_directories(
+  yoonvision
+  PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${JPEG_INCLUDE_DIRS})
 
-# target link 설정
-target_link_libraries(${PROJECT_NAME} ${PROJECT_PKGS_LDFLAGS})
+target_link_directories(yoonvision PUBLIC ${JPEG_LIBRARY_DIRS})
+target_link_libraries(yoonvision PUBLIC ${JPEG_LIBRARIES})
 
-# test debugging
-add_subdirectory(test)
+if(BUILD_TESTS)
+  enable_testing()
+  add_subdirectory(test)
+endif()
+
+include(GNUInstallDirs)
+install(TARGETS yoonvision
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})

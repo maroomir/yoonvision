@@ -5,6 +5,8 @@ cmake-build-debug
 # microsoft
 .vscode
 build
+install
+.clang-format
 
 # maroomir
 .DS_Store

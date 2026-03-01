@@ -1,13 +1,22 @@
-cmake_minimum_required(VERSION 3.10)
-project(yoonimage-test)
+cmake_minimum_required(VERSION 3.14)
 
-include_directories(${PROJECT_INCLUDE_DIR})
+include(FetchContent)
 
-link_directories(${YoonFactory_BINARY_DIR}/YoonImage)
+find_package(GTest QUIET)
+if(NOT GTest_FOUND)
+  FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip)
+  FetchContent_MakeAvailable(googletest)
+endif()
 
-add_executable(${PROJECT_NAME} main.cpp)
+add_executable(yoonvision-test test_image.cpp)
+target_link_libraries(yoonvision-test PRIVATE yoonvision GTest::gtest_main)
+target_compile_definitions(yoonvision-test PRIVATE YOONVISION_PROJECT_DIR="${CMAKE_SOURCE_DIR}")
 
-target_link_libraries(${PROJECT_NAME} yoonimage)
+include(GNUInstallDirs)
+install(TARGETS yoonvision-test
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
-target_compile_definitions(${PROJECT_NAME} PUBLIC
-        PREDEFINE_PATH)
+include(GoogleTest)
+gtest_discover_tests(yoonvision-test)
