@@ -6,32 +6,13 @@
 
 namespace yoonvision {
 
-Image::Image() {
-  width_ = image::kDefaultWidth;
-  height_ = image::kDefaultHeight;
-  channel_ = image::kDefaultChannel;
-  format_ = image::kChannelToDefaultFormat[channel_];
-  buffer_ = static_cast<unsigned char *>(
-      malloc(sizeof(char) * width_ * height_ * channel_));
-  memset(buffer_, 0, sizeof(char) * width_ * height_);
-}
-
-Image::Image(const Image &image) {
-  width_ = image.width_;
-  height_ = image.height_;
-  channel_ = image.channel_;
-  format_ = image.format_;
-  buffer_ = static_cast<unsigned char *>(
-      malloc(sizeof(char) * width_ * height_ * channel_));
-  memcpy(buffer_, image.buffer_, sizeof(char) * width_ * height_ * channel_);
-}
+Image::Image() { buffer_.resize(width_ * height_ * channel_, 0); }
 
 Image::Image(const std::string &image_path, image::FileFormat format) {
   width_ = image::kDefaultWidth;
   height_ = image::kDefaultHeight;
   channel_ = image::kDefaultChannel;
   format_ = image::ImageFormat::kNone;
-  buffer_ = nullptr;
   switch (format) {
     case image::FileFormat::kBitmap:
       LoadBitmap(image_path);
@@ -51,61 +32,54 @@ Image::Image(size_t width, size_t height, size_t channel) {
   height_ = height;
   channel_ = channel;
   format_ = image::kChannelToDefaultFormat[channel_];
-  buffer_ = static_cast<unsigned char *>(
-      malloc(sizeof(char) * width_ * height_ * channel_));
-  memset(buffer_, 0, sizeof(char) * width_ * height_ * channel_);
+  buffer_.resize(width_ * height_ * channel_, 0);
 }
 
-Image::Image(int *buffer, size_t width, size_t height) {
+Image::Image(const std::vector<int> &buffer, size_t width, size_t height) {
   width_ = width;
   height_ = height;
   channel_ = 3;
   format_ = image::kChannelToDefaultFormat[channel_];
-  buffer_ = static_cast<unsigned char *>(
-      malloc(sizeof(char) * width_ * height_ * channel_));
-  for (int i = 0; i < width * height; i++) {
-    unsigned char *byte_ptr = ToByte(buffer[i]);
-    memcpy(buffer_ + i * channel_ * sizeof(char), byte_ptr,
-           sizeof(char) * channel_);
-    delete byte_ptr;
+  buffer_.resize(width_ * height_ * channel_, 0);
+  for (size_t i = 0; i < width * height; i++) {
+    std::vector<unsigned char> byte_ptr = ToByte(buffer[i]);
+    std::copy(byte_ptr.begin(), byte_ptr.begin() + channel_,
+              buffer_.begin() + i * channel_);
   }
 }
 
-Image::Image(unsigned char *red_buffer, unsigned char *green_buffer,
-             unsigned char *blue_buffer, size_t width, size_t height) {
+Image::Image(const std::vector<unsigned char> &red_buffer,
+             const std::vector<unsigned char> &green_buffer,
+             const std::vector<unsigned char> &blue_buffer, size_t width,
+             size_t height) {
   width_ = width;
   height_ = height;
   channel_ = 3;
   format_ = image::ImageFormat::kRgb;
-  buffer_ = static_cast<unsigned char *>(
-      malloc(sizeof(char) * width_ * height_ * channel_));
   size_t size = width_ * height_;
-  size_t cursor = 0;
-  memcpy(buffer_, red_buffer, sizeof(char) * size);
-  cursor += sizeof(char) * size;
-  memcpy(buffer_ + (int)cursor, green_buffer, sizeof(char) * size);
-  cursor += sizeof(char) * size;
-  memcpy(buffer_ + (int)cursor, blue_buffer, sizeof(char) * size);
+  buffer_.resize(size * channel_);
+  std::copy(red_buffer.begin(), red_buffer.begin() + size, buffer_.begin());
+  std::copy(green_buffer.begin(), green_buffer.begin() + size,
+            buffer_.begin() + size);
+  std::copy(blue_buffer.begin(), blue_buffer.begin() + size,
+            buffer_.begin() + 2 * size);
 }
 
-Image::Image(unsigned char *buffer, size_t width, size_t height,
-             image::ImageFormat format) {
+Image::Image(const std::vector<unsigned char> &buffer, size_t width,
+             size_t height, image::ImageFormat format) {
   width_ = width;
   height_ = height;
   channel_ = image::kFormatToChannel[static_cast<int>(format)];
+  size_t size = width_ * height_ * channel_;
   switch (format) {
     case image::ImageFormat::kGray:
       format_ = image::ImageFormat::kGray;
-      buffer_ = static_cast<unsigned char *>(
-          malloc(sizeof(char) * width_ * height_ * channel_));
-      memcpy(buffer_, buffer, sizeof(char) * width_ * height_ * channel_);
+      buffer_ = buffer;
       break;
     case image::ImageFormat::kRgb:
     case image::ImageFormat::kRgbParallel:
       format_ = image::ImageFormat::kRgb;
-      buffer_ = static_cast<unsigned char *>(
-          malloc(sizeof(char) * width_ * height_ * channel_));
-      memcpy(buffer_, buffer, sizeof(char) * width_ * height_ * channel_);
+      buffer_ = buffer;
       break;
     case image::ImageFormat::kRgbMixed:  // Separate the pixel to Red, Green,
                                          // Blue buffer
@@ -115,12 +89,12 @@ Image::Image(unsigned char *buffer, size_t width, size_t height,
     case image::ImageFormat::kBgr:
     case image::ImageFormat::kBgrParallel:
       format_ = image::ImageFormat::kRgb;
-      buffer_ = static_cast<unsigned char *>(
-          malloc(sizeof(char) * width_ * height_ * channel_));
+      buffer_.resize(size);
       for (size_t c = 0; c < channel_; c++) {
         size_t start = (channel_ - c - 1) * width_ * height_;
-        memcpy(buffer_ + sizeof(char) * start, buffer + sizeof(char) * start,
-               sizeof(char) * width_ * height_);
+        std::copy(buffer.begin() + start,
+                  buffer.begin() + start + width_ * height_,
+                  buffer_.begin() + start);
       }
       break;
     case image::ImageFormat::kBgrMixed:
@@ -130,29 +104,19 @@ Image::Image(unsigned char *buffer, size_t width, size_t height,
     default:
       std::printf("[Image] Abnormal Image Format\n");
       format_ = image::ImageFormat::kGray;
-      buffer_ = static_cast<unsigned char *>(
-          malloc(sizeof(char) * width_ * height_ * channel_));
-      memset(buffer_, 0, sizeof(char) * width_ * height_ * channel_);
+      buffer_.resize(size, 0);
       break;
   }
 }
 
-Image::~Image() {
-  if (!buffer_) {
-    free(buffer_);
-    buffer_ = nullptr;
-  }
-}
-
-unsigned char *Image::ToParallelColorBuffer(const unsigned char *buffer,
-                                            bool reverse_order) const {
-  auto *result = static_cast<unsigned char *>(
-      malloc(sizeof(char) * width_ * height_ * channel_));
+std::vector<unsigned char> Image::ToParallelColorBuffer(
+    const std::vector<unsigned char> &buffer, bool reverse_order) const {
+  std::vector<unsigned char> result(width_ * height_ * channel_);
   for (size_t c = 0; c < channel_; c++) {
     size_t start = c * width_ * height_;
     size_t color = (reverse_order) ? channel_ - c - 1 : c;  // BRG or RGB
-    for (int y = 0; y < height_; y++) {
-      for (int x = 0; x < width_; x++) {
+    for (size_t y = 0; y < height_; y++) {
+      for (size_t x = 0; x < width_; x++) {
         result[start + y * width_ + x] =
             buffer[y * width_ * channel_ + x * channel_ + color];
       }
@@ -161,16 +125,14 @@ unsigned char *Image::ToParallelColorBuffer(const unsigned char *buffer,
   return result;
 }
 
-unsigned char *Image::ToMixedColorBuffer(const unsigned char *buffer,
-                                         bool reverse_order) const {
-  auto *result = static_cast<unsigned char *>(
-      malloc(sizeof(char) * width_ * height_ * channel_));
-
+std::vector<unsigned char> Image::ToMixedColorBuffer(
+    const std::vector<unsigned char> &buffer, bool reverse_order) const {
+  std::vector<unsigned char> result(width_ * height_ * channel_);
   for (size_t c = 0; c < channel_; c++) {
     size_t start = c * width_ * height_;
     size_t color = (reverse_order) ? channel_ - c - 1 : c;
-    for (int y = 0; y < height_; y++) {
-      for (int x = 0; x < width_; x++) {
+    for (size_t y = 0; y < height_; y++) {
+      for (size_t x = 0; x < width_; x++) {
         result[y * width_ * channel_ + x * channel_ + color] =
             buffer[start + y * width_ + x];
       }
@@ -180,48 +142,41 @@ unsigned char *Image::ToMixedColorBuffer(const unsigned char *buffer,
 }
 
 size_t Image::Width() const { return width_; }
-
 size_t Image::Height() const { return height_; }
-
 size_t Image::Channel() const { return channel_; }
-
 size_t Image::Stride() const { return width_ * channel_; }
 
-unsigned char *Image::GetBuffer() { return buffer_; }
+std::vector<unsigned char> &Image::GetBuffer() { return buffer_; }
+const std::vector<unsigned char> &Image::GetBuffer() const { return buffer_; }
 
-unsigned char *Image::CopyBuffer() {
-  auto *buffer = static_cast<unsigned char *>(
-      malloc(sizeof(char) * width_ * height_ * channel_));
-  memcpy(buffer, buffer_, sizeof(char) * width_ * height_ * channel_);
-  return buffer;
-}
+std::vector<unsigned char> Image::CopyBuffer() const { return buffer_; }
 
-image::ImageFormat Image::ImageFormat() { return format_; }
+image::ImageFormat Image::ImageFormat() const { return format_; }
 
-unsigned char *Image::GetMixedColorBuffer() {
-  unsigned char *buffer = nullptr;
+std::vector<unsigned char> Image::GetMixedColorBuffer() const {
+  std::vector<unsigned char> result;
   switch (format_) {
     case image::ImageFormat::kGray: {
       size_t size = width_ * height_;
-      buffer = static_cast<unsigned char *>(malloc(sizeof(char) * size * 3));
+      result.resize(size * 3);
       for (int c = 0; c < 3; c++) {
         size_t offset = size * c;
-        memcpy(buffer + sizeof(char) * offset, buffer_ + sizeof(char) * offset,
-               sizeof(char) * size);
+        std::copy(buffer_.begin() + offset, buffer_.begin() + offset + size,
+                  result.begin() + offset);
       }
       break;
     }
     case image::ImageFormat::kRgb:
-      buffer = ToMixedColorBuffer(buffer_, true);
+      result = ToMixedColorBuffer(buffer_, true);
       break;
     case image::ImageFormat::kBgr:
-      buffer = ToMixedColorBuffer(buffer_, false);
+      result = ToMixedColorBuffer(buffer_, false);
       break;
     default:
       std::printf("[Image][GetMixedColorBuffer] Abnormal Image Format\n");
       break;
   }
-  return buffer;
+  return result;
 }
 
 void Image::CopyFrom(const Image &image) {
@@ -229,38 +184,25 @@ void Image::CopyFrom(const Image &image) {
   height_ = image.height_;
   channel_ = image.channel_;
   format_ = image.format_;
-  if (buffer_ != nullptr) {
-    free(buffer_);
-    buffer_ = nullptr;
-  }
-  buffer_ = static_cast<unsigned char *>(
-      malloc(sizeof(char) * width_ * height_ * channel_));
-  memcpy(buffer_, image.buffer_, sizeof(char) * width_ * height_ * channel_);
+  buffer_ = image.buffer_;
 }
 
-Image *Image::Clone() { return new Image(buffer_, width_, height_, format_); }
+Image Image::Clone() const { return Image(buffer_, width_, height_, format_); }
 
-bool Image::Equals(const Image &image) {
-  bool equal = (width_ == image.width_) && (height_ == image.height_) &&
-               (channel_ == image.channel_) && (format_ == image.format_);
-  if (equal) {
-    size_t size = width_ * height_ * channel_;
-    for (size_t i = 0; i < size; i++) {
-      if (buffer_[i] != image.buffer_[i]) {
-        equal = false;
-        break;
-      }
-    }
+bool Image::Equals(const Image &image) const {
+  if (width_ != image.width_ || height_ != image.height_ ||
+      channel_ != image.channel_ || format_ != image.format_) {
+    return false;
   }
-  return equal;
+  return buffer_ == image.buffer_;
 }
 
-unsigned char *Image::ToGrayBuffer() {
+std::vector<unsigned char> Image::ToGrayBuffer() const {
   size_t size = width_ * height_;
-  auto *result = new unsigned char[sizeof(char) * size];
+  std::vector<unsigned char> result(size);
   switch (format_) {
     case image::ImageFormat::kGray:
-      memcpy(result, buffer_, sizeof(char) * size);
+      result = buffer_;
       break;
     case image::ImageFormat::kRgb:
       for (size_t h = 0; h < height_; h++) {
@@ -269,9 +211,8 @@ unsigned char *Image::ToGrayBuffer() {
           unsigned char red = buffer_[pos];
           unsigned char green = buffer_[size + pos];
           unsigned char blue = buffer_[2 * size + pos];
-          // ITU-RBT.709, YPrPb
-          result[pos] =
-              (unsigned char)(0.299 * red + 0.587 * green + 0.114 * blue);
+          result[pos] = static_cast<unsigned char>(0.299 * red + 0.587 * green +
+                                                   0.114 * blue);
         }
       }
       break;
@@ -282,108 +223,94 @@ unsigned char *Image::ToGrayBuffer() {
           unsigned char blue = buffer_[pos];
           unsigned char green = buffer_[size + pos];
           unsigned char red = buffer_[2 * size + pos];
-          // ITU-RBT.709, YPrPb
-          result[pos] =
-              (unsigned char)(0.299 * red + 0.587 * green + 0.114 * blue);
+          result[pos] = static_cast<unsigned char>(0.299 * red + 0.587 * green +
+                                                   0.114 * blue);
         }
       }
       break;
     default:
       std::printf("[Image][ToGrayImage] Abnormal Image Format\n");
-      memset(result, 0, sizeof(char) * size);
+      std::fill(result.begin(), result.end(), 0);
       break;
   }
   return result;
 }
 
-Image *Image::ToGrayImage() {
-  unsigned char *result_buffer = ToGrayBuffer();
-  auto *result_image =
-      new Image(result_buffer, width_, height_, image::ImageFormat::kGray);
-  delete[] result_buffer;
-  return result_image;
+Image Image::ToGrayImage() const {
+  std::vector<unsigned char> result_buffer = ToGrayBuffer();
+  return Image(result_buffer, width_, height_, image::ImageFormat::kGray);
 }
 
-unsigned char *Image::ToRedBuffer() {
+std::vector<unsigned char> Image::ToRedBuffer() const {
   size_t size = width_ * height_;
-  auto *result = new unsigned char[sizeof(char) * size];
+  std::vector<unsigned char> result(size);
   switch (format_) {
     case image::ImageFormat::kGray:
     case image::ImageFormat::kRgb:  // "R" G B
-      memcpy(result, buffer_, sizeof(char) * size);
+      std::copy(buffer_.begin(), buffer_.begin() + size, result.begin());
       break;
     case image::ImageFormat::kBgr:  // B G "R"
-      memcpy(result, buffer_ + sizeof(char) * size * 2, sizeof(char) * size);
+      std::copy(buffer_.begin() + size * 2, buffer_.begin() + size * 3,
+                result.begin());
       break;
     default:
       std::printf("[Image][ToRedImage] Abnormal Image Format\n");
-      memset(result, 0, sizeof(char) * size);
+      std::fill(result.begin(), result.end(), 0);
       break;
   }
   return result;
 }
 
-Image *Image::ToRedImage() {
-  unsigned char *result_buffer = ToRedBuffer();
-  auto *result_image =
-      new Image(result_buffer, width_, height_, image::ImageFormat::kGray);
-  delete[] result_buffer;
-  return result_image;
+Image Image::ToRedImage() const {
+  return Image(ToRedBuffer(), width_, height_, image::ImageFormat::kGray);
 }
 
-unsigned char *Image::ToGreenBuffer() {
+std::vector<unsigned char> Image::ToGreenBuffer() const {
   size_t size = width_ * height_;
-  auto *result_buffer = new unsigned char[sizeof(char) * size];
+  std::vector<unsigned char> result(size);
   switch (format_) {
     case image::ImageFormat::kGray:
-      memcpy(result_buffer, buffer_, sizeof(char) * size);
+      std::copy(buffer_.begin(), buffer_.begin() + size, result.begin());
       break;
     case image::ImageFormat::kRgb:  // R "G" B
     case image::ImageFormat::kBgr:  // B "G" R
-      memcpy(result_buffer, buffer_ + sizeof(char) * size, sizeof(char) * size);
+      std::copy(buffer_.begin() + size, buffer_.begin() + size * 2,
+                result.begin());
       break;
     default:
       std::printf("[Image][ToGreenImage] Abnormal Image Format\n");
-      memset(result_buffer, 0, sizeof(char) * size);
+      std::fill(result.begin(), result.end(), 0);
       break;
   }
-  return result_buffer;
+  return result;
 }
 
-Image *Image::ToGreenImage() {
-  unsigned char *result_buffer = ToGreenBuffer();
-  auto *result_image =
-      new Image(result_buffer, width_, height_, image::ImageFormat::kGray);
-  delete[] result_buffer;
-  return result_image;
+Image Image::ToGreenImage() const {
+  return Image(ToGreenBuffer(), width_, height_, image::ImageFormat::kGray);
 }
 
-unsigned char *Image::ToBlueBuffer() {
+std::vector<unsigned char> Image::ToBlueBuffer() const {
   size_t size = width_ * height_;
-  auto *result_buffer = new unsigned char[sizeof(char) * size];
+  std::vector<unsigned char> result(size);
   switch (format_) {
     case image::ImageFormat::kGray:
     case image::ImageFormat::kBgr:  // "B" G R
-      memcpy(result_buffer, buffer_, sizeof(char) * size);
+      std::copy(buffer_.begin(), buffer_.begin() + size, result.begin());
       break;
     case image::ImageFormat::kRgb:  // R G "B"
-      memcpy(result_buffer, buffer_ + sizeof(char) * size * 2,
-             sizeof(char) * size);
+      std::copy(buffer_.begin() + size * 2, buffer_.begin() + size * 3,
+                result.begin());
       break;
     default:
-      std::printf("[Image][ToRedImage] Abnormal Image Format\n");
-      memset(result_buffer, 0, sizeof(char) * size);
+      std::printf("[Image][ToBlueImage] Abnormal Image Format\n");
+      std::fill(result.begin(), result.end(), 0);
       break;
   }
-  return result_buffer;
+  return result;
 }
 
-Image *Image::ToBlueImage() {
-  unsigned char *result_buffer = ToBlueBuffer();
-  auto *result_image =
-      new Image(result_buffer, width_, height_, image::ImageFormat::kGray);
-  delete[] result_buffer;
-  return result_image;
+Image Image::ToBlueImage() const {
+  return Image(ToBlueBuffer(), width_, height_, image::ImageFormat::kGray);
 }
 
 bool Image::LoadBitmap(const std::string &path) {
@@ -393,10 +320,7 @@ bool Image::LoadBitmap(const std::string &path) {
     return false;
   }
 
-  if (!buffer_) {
-    free(buffer_);
-    buffer_ = nullptr;
-  }
+  buffer_.clear();
   width_ = 0;
   height_ = 0;
   channel_ = 0;
@@ -409,14 +333,12 @@ bool Image::LoadBitmap(const std::string &path) {
     file_header.Clear();
     info_header.Clear();
     stream.close();
-    // Initialize the buffer
+
     width_ = image::kDefaultWidth;
     height_ = image::kDefaultHeight;
     channel_ = image::kDefaultChannel;
     format_ = image::kChannelToDefaultFormat[channel_];
-    buffer_ = static_cast<unsigned char *>(
-        malloc(sizeof(char) * width_ * height_ * channel_));
-    memset(buffer_, 0, sizeof(char) * width_ * height_);
+    buffer_.resize(width_ * height_ * channel_, 0);
     return false;
   }
 
@@ -427,36 +349,33 @@ bool Image::LoadBitmap(const std::string &path) {
   try {
     if (format_ == image::ImageFormat::kGray)
       image::bitmap::ReadBitmapPaletteTable(stream);
-    unsigned char *buffer =
+    std::vector<unsigned char> temp_buffer =
         image::bitmap::ReadBitmapBuffer(stream, width_, height_, channel_);
-    buffer_ = ToParallelColorBuffer(buffer, true);
-    delete[] buffer;
+    buffer_ = ToParallelColorBuffer(temp_buffer, true);
     stream.close();
   } catch (int code) {
     std::printf("[Image][LoadBitmap] Buffer Reading Error\n");
     file_header.Clear();
     info_header.Clear();
     stream.close();
-    // Initialize the buffer
+
     width_ = image::kDefaultWidth;
     height_ = image::kDefaultHeight;
     channel_ = image::kDefaultChannel;
     format_ = image::kChannelToDefaultFormat[channel_];
-    buffer_ = static_cast<unsigned char *>(
-        malloc(sizeof(char) * width_ * height_ * channel_));
-    memset(buffer_, 0, sizeof(char) * width_ * height_);
+    buffer_.resize(width_ * height_ * channel_, 0);
     return false;
   }
   return true;
 }
 
-bool Image::SaveBitmap(const std::string &path) {
+bool Image::SaveBitmap(const std::string &path) const {
   std::ofstream stream(path.c_str(), std::ios::binary);
   if (!stream) {
     std::printf("[Image][SaveBitmap] File Path is not correct\n");
     return false;
   }
-  if (!buffer_) {
+  if (buffer_.empty()) {
     std::printf("[Image][SaveBitmap] Buffer is empty\n");
     return false;
   }
@@ -487,14 +406,11 @@ bool Image::SaveBitmap(const std::string &path) {
   info_header.Write(stream);
 
   size_t size = width_ * height_;
-  unsigned char *buffer;
+  std::vector<unsigned char> buffer;
   switch (format_) {
     case image::ImageFormat::kGray:
-      // Palette Table
       image::bitmap::WriteBitmapPaletteTable(stream);
-      // Pixel Buffer
-      buffer = new unsigned char[sizeof(char) * size];
-      memcpy(buffer, buffer_, sizeof(char) * size);
+      buffer = buffer_;
       break;
     case image::ImageFormat::kRgb:
     case image::ImageFormat::kRgbParallel:
@@ -506,26 +422,22 @@ bool Image::SaveBitmap(const std::string &path) {
       break;
     case image::ImageFormat::kRgbMixed:
     case image::ImageFormat::kBgrMixed:
-      buffer = new unsigned char[size * channel_];
-      memcpy(buffer, buffer_, sizeof(char) * size * channel_);
+      buffer = buffer_;
       break;
     default:
-      buffer = new unsigned char[size * channel_];
-      memset(buffer, 0, sizeof(char) * size * channel_);
+      buffer.resize(size * channel_, 0);
       break;
   }
   image::bitmap::WriteBitmapBuffer(stream, buffer, width_, height_, channel_);
   stream.close();
-  delete[] buffer;
   return true;
 }
 
 bool Image::LoadJpeg(const std::string &path) {
-  // buffer 는 mixed color buffer 로 읽어옴
-  unsigned char *buffer = nullptr;
-  if (image::jpeg::ReadJpegBuffer(path.c_str(), buffer, width_, height_,
+  std::vector<unsigned char> temp_buffer;
+  if (image::jpeg::ReadJpegBuffer(path.c_str(), temp_buffer, width_, height_,
                                   channel_)) {
-    buffer_ = ToParallelColorBuffer(buffer);
+    buffer_ = ToParallelColorBuffer(temp_buffer);
     format_ = image::kChannelToDefaultFormat[channel_];
     return true;
   }
@@ -533,11 +445,10 @@ bool Image::LoadJpeg(const std::string &path) {
   return false;
 }
 
-bool Image::SaveJpeg(const std::string &path) {
-  // jpeg 로 save 할 때는 mixed color buffer 사용해야함
-  unsigned char *buffer = (format_ != image::ImageFormat::kRgbMixed)
-                              ? ToMixedColorBuffer(buffer_)
-                              : buffer_;
+bool Image::SaveJpeg(const std::string &path) const {
+  std::vector<unsigned char> buffer = (format_ != image::ImageFormat::kRgbMixed)
+                                          ? ToMixedColorBuffer(buffer_)
+                                          : buffer_;
   if (!image::jpeg::WriteJpegBuffer(path.c_str(), buffer, width_, height_,
                                     (int)channel_)) {
     std::printf("[Image][SaveJpeg] Jpeg saved failed\n");
@@ -547,45 +458,42 @@ bool Image::SaveJpeg(const std::string &path) {
   }
 }
 
-Image *Image::GrayPaletteBar(int width, int height, int step) {
+Image Image::GrayPaletteBar(int width, int height, int step) {
   width *= step;
-  auto *buffer = new unsigned char[width * height];
+  std::vector<unsigned char> buffer(width * height);
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      buffer[y * width + x] = (unsigned char)(x / step);
+      buffer[y * width + x] = static_cast<unsigned char>(x / step);
     }
   }
-  auto *result_image =
-      new Image(buffer, width, height, image::ImageFormat::kGray);
-  delete[] buffer;
-  return result_image;
+  return Image(buffer, width, height, image::ImageFormat::kGray);
 }
 
-Image *Image::ColorPaletteBar(int width, int height, int step) {
+Image Image::ColorPaletteBar(int width, int height, int step) {
   width *= step;
   int channel = 3;
-  auto *red_buffer = new unsigned char[width * height * channel];
-  auto *green_buffer = new unsigned char[width * height * channel];
-  auto *blue_buffer = new unsigned char[width * height * channel];
+  std::vector<unsigned char> red_buffer(width * height * channel);
+  std::vector<unsigned char> green_buffer(width * height * channel);
+  std::vector<unsigned char> blue_buffer(width * height * channel);
   for (int y = 0; y < height; y++) {
     for (int page = 0; page < channel; page++) {
       for (int x = 0; x < width; x++) {
         int i = y * width * channel + page * width + x;
         switch (page) {
           case 0:  // RED Area
-            red_buffer[i] = 255 - (unsigned char)(x / step);
-            green_buffer[i] = (unsigned char)(x / step);
+            red_buffer[i] = 255 - static_cast<unsigned char>(x / step);
+            green_buffer[i] = static_cast<unsigned char>(x / step);
             blue_buffer[i] = 0;
             break;
           case 1:  // GREEN Area
             red_buffer[i] = 0;
-            green_buffer[i] = 255 - (unsigned char)(x / step);
-            blue_buffer[i] = (unsigned char)(x / step);
+            green_buffer[i] = 255 - static_cast<unsigned char>(x / step);
+            blue_buffer[i] = static_cast<unsigned char>(x / step);
             break;
           case 2:  // BLUE Area
-            red_buffer[i] = (unsigned char)(x / step);
+            red_buffer[i] = static_cast<unsigned char>(x / step);
             green_buffer[i] = 0;
-            blue_buffer[i] = 255 - (unsigned char)(x / step);
+            blue_buffer[i] = 255 - static_cast<unsigned char>(x / step);
             break;
           default:
             break;
@@ -593,11 +501,7 @@ Image *Image::ColorPaletteBar(int width, int height, int step) {
       }
     }
   }
-  auto *result_image =
-      new Image(red_buffer, green_buffer, blue_buffer, width * channel, height);
-  delete[] red_buffer;
-  delete[] green_buffer;
-  delete[] blue_buffer;
-  return result_image;
+  return Image(red_buffer, green_buffer, blue_buffer, width * channel, height);
 }
+
 }  // namespace yoonvision

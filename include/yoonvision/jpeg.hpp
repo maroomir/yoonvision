@@ -26,7 +26,10 @@ void JpegErrorExit(j_common_ptr info) {
 }
 }  // namespace
 
-static bool WriteJpegBuffer(const char *path, unsigned char *buffer,
+#include <vector>
+
+static bool WriteJpegBuffer(const char *path,
+                            const std::vector<unsigned char> &buffer,
                             size_t width, size_t height, int channel,
                             int quality = 100) {
   // JPEG 압축 정보 생성
@@ -63,7 +66,7 @@ static bool WriteJpegBuffer(const char *path, unsigned char *buffer,
   size_t stride = width * channel;
   JSAMPROW row[1];
   while (info.next_scanline < info.image_height) {
-    row[0] = &buffer[info.next_scanline * stride];
+    row[0] = const_cast<unsigned char *>(&buffer[info.next_scanline * stride]);
     (void)jpeg_write_scanlines(&info, row, 1);
   }
 
@@ -73,7 +76,7 @@ static bool WriteJpegBuffer(const char *path, unsigned char *buffer,
   return true;
 }
 
-static bool ReadJpegBuffer(const char *path, unsigned char *&result,
+static bool ReadJpegBuffer(const char *path, std::vector<unsigned char> &result,
                            size_t &width, size_t &height, size_t &channel) {
   // JPEG 압축 정보 읽어오기
   struct jpeg_decompress_struct info {};
@@ -101,21 +104,19 @@ static bool ReadJpegBuffer(const char *path, unsigned char *&result,
   height = info.output_height;
   channel = info.output_components;
   size_t stride = width * channel;
-  if (result == nullptr) {
-    result = static_cast<unsigned char *>(malloc(width * height * channel));
-  }
+  result.resize(width * height * channel);
+
   // JPEG buffer 정보를 row 별로 read 해서 복사함
   size_t pixel = 0;
-  JSAMPROW row_ptr[1];
-  row_ptr[0] = static_cast<unsigned char *>(malloc(stride));
+  std::vector<unsigned char> row_buffer(stride);
+  JSAMPROW row_ptr[1] = {row_buffer.data()};
   while (info.output_scanline < info.output_height) {
     (void)jpeg_read_scanlines(&info, row_ptr, 1);
     for (size_t i = 0; i < stride; i++) {
-      result[pixel++] = static_cast<unsigned char>(row_ptr[0][i]);
+      result[pixel++] = row_buffer[i];
     }
   }
 
-  free(row_ptr[0]);
   (void)jpeg_finish_decompress(&info);
   jpeg_destroy_decompress(&info);
   fclose(file);

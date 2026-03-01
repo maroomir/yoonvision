@@ -5,7 +5,9 @@
 #ifndef YOONVISION_IMAGE_HPP_
 #define YOONVISION_IMAGE_HPP_
 
+#include <memory>
 #include <string>
+#include <vector>
 
 #include "bitmap.hpp"
 #include "figure.hpp"
@@ -43,8 +45,8 @@ constexpr ImageFormat kChannelToDefaultFormat[kMaxChannel + 1] = {
 };
 }  // namespace image
 
-static unsigned char *ToByte(const int &number) {
-  auto *bytes = new unsigned char[4];
+static std::vector<unsigned char> ToByte(const int &number) {
+  std::vector<unsigned char> bytes(4);
   bytes[0] = (number & 0xFF);
   bytes[1] = (number >> 8) & 0xFF;
   bytes[2] = (number >> 16) & 0xFF;
@@ -52,41 +54,50 @@ static unsigned char *ToByte(const int &number) {
   return bytes;
 }
 
-static int ToInteger(const unsigned char *bytes) {
-  if (bytes == nullptr) return image::kInvalidNum;
+static int ToInteger(const std::vector<unsigned char> &bytes) {
+  if (bytes.size() < 4) return image::kInvalidNum;
   return bytes[0] | bytes[1] << 8 | bytes[2] << 16 | bytes[3] << 24;
 }
 
 class Image {
  private:
-  unsigned char *ToMixedColorBuffer(const unsigned char *buffer,
-                                    bool reverse_order = false) const;
+  std::vector<unsigned char> ToMixedColorBuffer(
+      const std::vector<unsigned char> &buffer,
+      bool reverse_order = false) const;
 
-  unsigned char *ToParallelColorBuffer(const unsigned char *buffer,
-                                       bool reverse_order = false) const;
+  std::vector<unsigned char> ToParallelColorBuffer(
+      const std::vector<unsigned char> &buffer,
+      bool reverse_order = false) const;
 
  private:
-  unsigned char *buffer_;  // "Gray" or Parallel Color Buffers (R + G + B)
-  size_t width_, height_, channel_;
-  image::ImageFormat format_;
+  std::vector<unsigned char> buffer_;  // "Gray" or Parallel Color Buffers (R + G + B)
+  size_t width_ = image::kDefaultWidth;
+  size_t height_ = image::kDefaultHeight;
+  size_t channel_ = image::kDefaultChannel;
+  image::ImageFormat format_ = image::ImageFormat::kNone;
 
  public:
   Image();
 
-  ~Image();
+  ~Image() = default;
 
-  Image(const Image &image);
+  Image(const Image &image) = default;
+  Image &operator=(const Image &image) = default;
+  Image(Image &&image) = default;
+  Image &operator=(Image &&image) = default;
 
   explicit Image(const std::string &image_path, image::FileFormat format);
 
   Image(size_t width, size_t height, size_t channel);
 
-  Image(int *buffer, size_t width, size_t height);
+  Image(const std::vector<int> &buffer, size_t width, size_t height);
 
-  Image(unsigned char *red_buffer, unsigned char *green_buffer,
-        unsigned char *blue_buffer, size_t width, size_t height);
+  Image(const std::vector<unsigned char> &red_buffer,
+        const std::vector<unsigned char> &green_buffer,
+        const std::vector<unsigned char> &blue_buffer, size_t width,
+        size_t height);
 
-  Image(unsigned char *buffer, size_t width, size_t height,
+  Image(const std::vector<unsigned char> &buffer, size_t width, size_t height,
         image::ImageFormat format);
 
   [[nodiscard]] size_t Width() const;
@@ -97,49 +108,49 @@ class Image {
 
   [[nodiscard]] size_t Stride() const;
 
-  unsigned char *GetBuffer();
+  std::vector<unsigned char> &GetBuffer();
+  const std::vector<unsigned char> &GetBuffer() const;
 
-  unsigned char *CopyBuffer();
+  std::vector<unsigned char> CopyBuffer() const;
 
-  unsigned char *GetMixedColorBuffer();
+  std::vector<unsigned char> GetMixedColorBuffer() const;
 
-  image::ImageFormat ImageFormat();
+  image::ImageFormat ImageFormat() const;
 
-  Image *ToGrayImage();
+  Image ToGrayImage() const;
 
-  Image *ToRedImage();
+  Image ToRedImage() const;
 
-  Image *ToGreenImage();
+  Image ToGreenImage() const;
 
-  Image *ToBlueImage();
+  Image ToBlueImage() const;
 
-  unsigned char *ToGrayBuffer();
+  std::vector<unsigned char> ToGrayBuffer() const;
 
-  unsigned char *ToRedBuffer();
+  std::vector<unsigned char> ToRedBuffer() const;
 
-  unsigned char *ToGreenBuffer();
+  std::vector<unsigned char> ToGreenBuffer() const;
 
-  unsigned char *ToBlueBuffer();
+  std::vector<unsigned char> ToBlueBuffer() const;
 
   void CopyFrom(const Image &image);
 
-  Image *Clone();
+  Image Clone() const;
 
-  bool Equals(const Image &image);
+  bool Equals(const Image &image) const;
 
   bool LoadBitmap(const std::string &path);
 
-  bool SaveBitmap(const std::string &path);
+  bool SaveBitmap(const std::string &path) const;
 
   bool LoadJpeg(const std::string &path);
 
-  bool SaveJpeg(const std::string &path);
+  bool SaveJpeg(const std::string &path) const;
 
  public:
-  static Image *GrayPaletteBar(int width = 256, int height = 50, int step = 10);
+  static Image GrayPaletteBar(int width = 256, int height = 50, int step = 10);
 
-  static Image *ColorPaletteBar(int width = 256, int height = 50,
-                                int step = 10);
+  static Image ColorPaletteBar(int width = 256, int height = 50, int step = 10);
 };
 }  // namespace yoonvision
 

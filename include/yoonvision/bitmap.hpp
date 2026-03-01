@@ -9,6 +9,7 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <vector>
 
 namespace yoonvision::image::bitmap {
 
@@ -176,55 +177,54 @@ struct RgbquadPalette {
 };
 
 static void WriteBitmapPaletteTable(std::ofstream &stream) {
-  auto *palette = new RgbquadPalette[256];
+  std::vector<RgbquadPalette> palette(256);
   for (int i = 0; i < 256; i++) {
-    palette[i].red = (unsigned char)i;
-    palette[i].green = (unsigned char)i;
-    palette[i].blue = (unsigned char)i;
-    palette[i].reserved = (unsigned char)0;
+    palette[i].red = static_cast<unsigned char>(i);
+    palette[i].green = static_cast<unsigned char>(i);
+    palette[i].blue = static_cast<unsigned char>(i);
+    palette[i].reserved = 0;
   }
-  stream.write(reinterpret_cast<const char *>(palette),
+  stream.write(reinterpret_cast<const char *>(palette.data()),
                sizeof(RgbquadPalette) * 256);
-  delete[] palette;
 }
 
-static RgbquadPalette *ReadBitmapPaletteTable(std::ifstream &stream) {
-  auto *result_buffer = new unsigned char[1024];
-  stream.read(reinterpret_cast<char *>(result_buffer), sizeof(char) * 1024);
-  auto *palette = new RgbquadPalette[1024];
+static std::vector<RgbquadPalette> ReadBitmapPaletteTable(
+    std::ifstream &stream) {
+  std::vector<unsigned char> result_buffer(1024);
+  stream.read(reinterpret_cast<char *>(result_buffer.data()), 1024);
+  std::vector<RgbquadPalette> palette(256);
   for (int i = 0; i < 256; i++) {
     palette[i].red = result_buffer[i * 4];
     palette[i].green = result_buffer[i * 4 + 1];
     palette[i].blue = result_buffer[i * 4 + 2];
     palette[i].reserved = 0;
   }
-  delete[] result_buffer;
   return palette;
 }
 
-static void WriteBitmapBuffer(std::ofstream &stream, unsigned char *buffer,
+static void WriteBitmapBuffer(std::ofstream &stream,
+                              const std::vector<unsigned char> &buffer,
                               size_t width, size_t height, size_t channel) {
   unsigned int plane = width * channel;
   unsigned int padding = (4 - ((3 * width) % 4)) % 4;
   char pad_buffer[4] = {0x00, 0x00, 0x00, 0x00};
   for (size_t h = 0; h < height; ++h) {
     size_t start = (height - h - 1) * plane;
-    stream.write(reinterpret_cast<const char *>(buffer + sizeof(char) * start),
-                 (int)sizeof(char) * plane);
+    stream.write(reinterpret_cast<const char *>(buffer.data() + start), plane);
     stream.write(pad_buffer, padding);
   }
 }
 
-static unsigned char *ReadBitmapBuffer(std::ifstream &stream, size_t width,
-                                       size_t height, size_t channel) {
+static std::vector<unsigned char> ReadBitmapBuffer(std::ifstream &stream,
+                                                   size_t width, size_t height,
+                                                   size_t channel) {
   unsigned int padding = (4 - ((3 * width) % 4)) % 4;
   char pad[4] = {0x00, 0x00, 0x00, 0x00};
   unsigned int plane = width * channel;
-  auto *buffer = new unsigned char[plane * height];
+  std::vector<unsigned char> buffer(plane * height);
   for (size_t h = 0; h < height; ++h) {
     size_t start = (height - h - 1) * plane;
-    stream.read(reinterpret_cast<char *>(buffer + sizeof(char) * start),
-                (int)sizeof(char) * plane);
+    stream.read(reinterpret_cast<char *>(buffer.data() + start), plane);
     stream.read(pad, padding);
   }
   return buffer;
