@@ -9,8 +9,6 @@
 #include <jpeglib.h>
 
 #include <csetjmp>
-#include <cstdio>
-#include <iostream>
 
 namespace yoonvision::image::jpeg {
 namespace {
@@ -26,8 +24,6 @@ void JpegErrorExit(j_common_ptr info) {
 }
 }  // namespace
 
-#include <vector>
-
 static bool WriteJpegBuffer(const char *path,
                             const std::vector<unsigned char> &buffer,
                             size_t width, size_t height, int channel,
@@ -40,7 +36,6 @@ static bool WriteJpegBuffer(const char *path,
   // file 을 write mode 로 열고 압축 정보 저장
   FILE *file = fopen(path, "wb");
   if (!file) {
-    std::cerr << "can't open file : " << path << std::endl;
     return false;
   }
   jpeg_stdio_dest(&info, file);
@@ -56,7 +51,6 @@ static bool WriteJpegBuffer(const char *path,
       info.in_color_space = JCS_RGB;
       break;
     default:
-      std::cerr << "can't compose channel : " << channel << std::endl;
       return false;
   }
   jpeg_set_defaults(&info);
@@ -84,7 +78,6 @@ static bool ReadJpegBuffer(const char *path, std::vector<unsigned char> &result,
   // file 에서 JPEG 정보들을 read
   FILE *file = fopen(path, "rb");
   if (!file) {
-    std::cerr << "can't open file : " << path << std::endl;
     return false;
   }
   // JPEG 압축 정보를 가져오던 중 에러가 발생하는지 체크

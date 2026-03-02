@@ -11,7 +11,7 @@
 
 #include "build_mode.hpp"
 
-namespace yoonvision::log_internal {
+namespace yoonvision::log {
 
 inline std::string CurrentTimestamp() {
   using namespace std::chrono;
@@ -53,41 +53,41 @@ inline const char* SafeFunctionName(const char* function_name) {
   return function_name != nullptr ? function_name : "unknown";
 }
 
-}  // namespace yoonvision::log_internal
+}  // namespace yoonvision::log
 
 #define LOG_INFO(fmt, ...)                                                \
   do {                                                                    \
     std::printf("%s I: %s:%-3d %-20s: " fmt "\n",                         \
-                ::yoonvision::log_internal::CurrentTimestamp().c_str(),   \
-                ::yoonvision::log_internal::BaseName(__FILE__), __LINE__, \
-                ::yoonvision::log_internal::SafeFunctionName(__func__),   \
+                ::yoonvision::log::CurrentTimestamp().c_str(),   \
+                ::yoonvision::log::BaseName(__FILE__), __LINE__, \
+                ::yoonvision::log::SafeFunctionName(__func__),   \
                 ##__VA_ARGS__);                                           \
   } while (0)
 
 #define LOG_WARN(fmt, ...)                                                \
   do {                                                                    \
     std::printf("%s W: %s:%-3d %-20s: " fmt "\n",                         \
-                ::yoonvision::log_internal::CurrentTimestamp().c_str(),   \
-                ::yoonvision::log_internal::BaseName(__FILE__), __LINE__, \
-                ::yoonvision::log_internal::SafeFunctionName(__func__),   \
+                ::yoonvision::log::CurrentTimestamp().c_str(),   \
+                ::yoonvision::log::BaseName(__FILE__), __LINE__, \
+                ::yoonvision::log::SafeFunctionName(__func__),   \
                 ##__VA_ARGS__);                                           \
   } while (0)
 
 #define LOG_ERROR(fmt, ...)                                               \
   do {                                                                    \
     std::printf("%s E: %s:%-3d %-20s: " fmt "\n",                         \
-                ::yoonvision::log_internal::CurrentTimestamp().c_str(),   \
-                ::yoonvision::log_internal::BaseName(__FILE__), __LINE__, \
-                ::yoonvision::log_internal::SafeFunctionName(__func__),   \
+                ::yoonvision::log::CurrentTimestamp().c_str(),   \
+                ::yoonvision::log::BaseName(__FILE__), __LINE__, \
+                ::yoonvision::log::SafeFunctionName(__func__),   \
                 ##__VA_ARGS__);                                           \
   } while (0)
 
 #define LOG_DEBUG(fmt, ...)                                               \
   do {                                                                    \
     std::printf("%s D: %s:%-3d %-20s: " fmt "\n",                         \
-                ::yoonvision::log_internal::CurrentTimestamp().c_str(),   \
-                ::yoonvision::log_internal::BaseName(__FILE__), __LINE__, \
-                ::yoonvision::log_internal::SafeFunctionName(__func__),   \
+                ::yoonvision::log::CurrentTimestamp().c_str(),   \
+                ::yoonvision::log::BaseName(__FILE__), __LINE__, \
+                ::yoonvision::log::SafeFunctionName(__func__),   \
                 ##__VA_ARGS__);                                           \
   } while (0)
 

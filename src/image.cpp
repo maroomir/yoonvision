@@ -4,6 +4,8 @@
 
 #include "yoonvision/image.hpp"
 
+#include "log.hpp"
+
 namespace yoonvision {
 
 Image::Image() { buffer_.resize(width_ * height_ * channel_, 0); }
@@ -13,6 +15,8 @@ Image::Image(const std::string &image_path, image::FileFormat format) {
   height_ = image::kDefaultHeight;
   channel_ = image::kDefaultChannel;
   format_ = image::ImageFormat::kNone;
+  LOG_DEBUG2("ctor from path: %s (file_format=%d)", image_path.c_str(),
+             static_cast<int>(format));
   switch (format) {
     case image::FileFormat::kBitmap:
       LoadBitmap(image_path);
@@ -21,8 +25,8 @@ Image::Image(const std::string &image_path, image::FileFormat format) {
       LoadJpeg(image_path);
       break;
     default:
-      std::printf("[Image] Abnormal File Format (file: %s)\n",
-                  image_path.c_str());
+      LOG_WARN("unsupported file format: %d (path=%s)",
+               static_cast<int>(format), image_path.c_str());
       break;
   }
 }
@@ -102,7 +106,8 @@ Image::Image(const std::vector<unsigned char> &buffer, size_t width,
       buffer_ = ToParallelColorBuffer(buffer, true);
       break;
     default:
-      std::printf("[Image] Abnormal Image Format\n");
+      LOG_WARN("unsupported image format: %d",
+               static_cast<int>(format));
       format_ = image::ImageFormat::kGray;
       buffer_.resize(size, 0);
       break;
@@ -173,7 +178,8 @@ std::vector<unsigned char> Image::GetMixedColorBuffer() const {
       result = ToMixedColorBuffer(buffer_, false);
       break;
     default:
-      std::printf("[Image][GetMixedColorBuffer] Abnormal Image Format\n");
+      LOG_WARN("unsupported image format for mixed color buffer: %d",
+               static_cast<int>(format_));
       break;
   }
   return result;
@@ -229,7 +235,8 @@ std::vector<unsigned char> Image::ToGrayBuffer() const {
       }
       break;
     default:
-      std::printf("[Image][ToGrayImage] Abnormal Image Format\n");
+      LOG_WARN("unsupported image format for gray conversion: %d",
+               static_cast<int>(format_));
       std::fill(result.begin(), result.end(), 0);
       break;
   }
@@ -254,7 +261,8 @@ std::vector<unsigned char> Image::ToRedBuffer() const {
                 result.begin());
       break;
     default:
-      std::printf("[Image][ToRedImage] Abnormal Image Format\n");
+      LOG_WARN("unsupported image format for red conversion: %d",
+               static_cast<int>(format_));
       std::fill(result.begin(), result.end(), 0);
       break;
   }
@@ -278,7 +286,8 @@ std::vector<unsigned char> Image::ToGreenBuffer() const {
                 result.begin());
       break;
     default:
-      std::printf("[Image][ToGreenImage] Abnormal Image Format\n");
+      LOG_WARN("unsupported image format for green conversion: %d",
+               static_cast<int>(format_));
       std::fill(result.begin(), result.end(), 0);
       break;
   }
@@ -302,7 +311,8 @@ std::vector<unsigned char> Image::ToBlueBuffer() const {
                 result.begin());
       break;
     default:
-      std::printf("[Image][ToBlueImage] Abnormal Image Format\n");
+      LOG_WARN("unsupported image format for blue conversion: %d",
+               static_cast<int>(format_));
       std::fill(result.begin(), result.end(), 0);
       break;
   }
@@ -314,9 +324,10 @@ Image Image::ToBlueImage() const {
 }
 
 bool Image::LoadBitmap(const std::string &path) {
+  LOG_DEBUG2("load bitmap requested: %s", path.c_str());
   std::ifstream stream(path.c_str(), std::ios::binary);
   if (!stream) {
-    std::printf("[Image][LoadBitmap] File Path is not correct\n");
+    LOG_ERROR("load bitmap failed: invalid file path");
     return false;
   }
 
@@ -329,7 +340,7 @@ bool Image::LoadBitmap(const std::string &path) {
   file_header.Read(stream);
   info_header.Read(stream);
   if (info_header.size != info_header.HeaderSize()) {
-    std::printf("[Image][LoadBitmap] Invalid Bitmap Size\n");
+    LOG_ERROR("load bitmap failed: invalid bitmap header size");
     file_header.Clear();
     info_header.Clear();
     stream.close();
@@ -354,7 +365,8 @@ bool Image::LoadBitmap(const std::string &path) {
     buffer_ = ToParallelColorBuffer(temp_buffer, true);
     stream.close();
   } catch (int code) {
-    std::printf("[Image][LoadBitmap] Buffer Reading Error\n");
+    LOG_ERROR("load bitmap failed: buffer reading error (code=%d)",
+              code);
     file_header.Clear();
     info_header.Clear();
     stream.close();
@@ -366,17 +378,20 @@ bool Image::LoadBitmap(const std::string &path) {
     buffer_.resize(width_ * height_ * channel_, 0);
     return false;
   }
+  LOG_INFO("load bitmap success: %s (%zux%zu, ch=%zu)", path.c_str(),
+           width_, height_, channel_);
   return true;
 }
 
 bool Image::SaveBitmap(const std::string &path) const {
+  LOG_DEBUG2("save bitmap requested: %s", path.c_str());
   std::ofstream stream(path.c_str(), std::ios::binary);
   if (!stream) {
-    std::printf("[Image][SaveBitmap] File Path is not correct\n");
+    LOG_ERROR("save bitmap failed: invalid file path");
     return false;
   }
   if (buffer_.empty()) {
-    std::printf("[Image][SaveBitmap] Buffer is empty\n");
+    LOG_ERROR("save bitmap failed: buffer is empty");
     return false;
   }
 
@@ -430,30 +445,38 @@ bool Image::SaveBitmap(const std::string &path) const {
   }
   image::bitmap::WriteBitmapBuffer(stream, buffer, width_, height_, channel_);
   stream.close();
+  LOG_INFO("save bitmap success: %s (%zux%zu, ch=%zu)", path.c_str(),
+           width_, height_, channel_);
   return true;
 }
 
 bool Image::LoadJpeg(const std::string &path) {
+  LOG_DEBUG2("load jpeg requested: %s", path.c_str());
   std::vector<unsigned char> temp_buffer;
   if (image::jpeg::ReadJpegBuffer(path.c_str(), temp_buffer, width_, height_,
                                   channel_)) {
     buffer_ = ToParallelColorBuffer(temp_buffer);
     format_ = image::kChannelToDefaultFormat[channel_];
+    LOG_INFO("load jpeg success: %s (%zux%zu, ch=%zu)", path.c_str(),
+             width_, height_, channel_);
     return true;
   }
-  std::printf("[Image][LoadJpeg] Invalid jpeg path\n");
+  LOG_ERROR("load jpeg failed: invalid jpeg path");
   return false;
 }
 
 bool Image::SaveJpeg(const std::string &path) const {
+  LOG_DEBUG2("save jpeg requested: %s", path.c_str());
   std::vector<unsigned char> buffer = (format_ != image::ImageFormat::kRgbMixed)
                                           ? ToMixedColorBuffer(buffer_)
                                           : buffer_;
   if (!image::jpeg::WriteJpegBuffer(path.c_str(), buffer, width_, height_,
                                     (int)channel_)) {
-    std::printf("[Image][SaveJpeg] Jpeg saved failed\n");
+    LOG_ERROR("save jpeg failed");
     return false;
   } else {
+    LOG_INFO("save jpeg success: %s (%zux%zu, ch=%zu)", path.c_str(),
+             width_, height_, channel_);
     return true;
   }
 }
