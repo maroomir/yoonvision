@@ -1,0 +1,9 @@
+prefix=@PREFIX@
+libdir=${prefix}/@LIBDIR@
+includedir=@INCLUDEDIR@
+
+Name: libyooncamera
+Description: yooncamera camera abstraction library
+Version: @VERSION@
+Libs: -L${libdir} -lyooncamera
+Cflags: -I${includedir}

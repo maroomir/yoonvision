@@ -7,6 +7,7 @@
 
 #include <string>
 #include <vector>
+#include <memory>
 
 #include "byte.hpp"
 
@@ -16,6 +17,8 @@ class ImageBuilder;
 
 class Image {
  public:
+  using Ptr = std::shared_ptr<Image>;
+  
   enum class ImageFormat {
     kNone,
     kGray,

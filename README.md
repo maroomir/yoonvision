@@ -1,6 +1,11 @@
 # yoonvision
 
-ROS2 없이 CMake 기반으로 빌드하는 이미지 라이브러리 프로젝트입니다.
+ROS2 없이 CMake 기반으로 빌드하는 비전 라이브러리 프로젝트입니다.
+
+현재 아래 2개 라이브러리를 함께 제공합니다.
+
+- `yoonvision`: 이미지 처리(기존)
+- `yooncamera`: 카메라 추상화/팩토리 코어(신규)
 
 ## 요구 사항
 
@@ -43,6 +48,35 @@ OS 설정은 실행 인자가 아니라 `build.sh` 상단의 `OS_NAME` 변수에
 ```bash
 ctest --test-dir build --output-on-failure
 ```
+
+`BUILD_TESTS=ON`일 때 다음 테스트가 함께 구성됩니다.
+
+- `yoonvision-test`
+- `yooncamera-test`
+
+## yooncamera 개요
+
+`libamr_camera` 스타일을 참고해 별도 모듈 폴더(`yooncamera/`)로 구성했습니다.
+
+- 헤더: `yooncamera/include/yooncamera`
+  - `camera.hpp`
+  - `camera_stream.hpp`
+  - `camera_context_manager.hpp`
+  - `camera_factory.hpp`
+- 소스: `yooncamera/src`
+  - `camera_stream.cpp`
+  - `camera_factory.cpp`
+- 테스트 전용 Mock: `yooncamera/test/mock`
+  - `mock_camera.hpp`
+  - `mock_camera.cpp`
+- pkg-config 템플릿: `yooncamera/libyooncamera.pc.in`
+
+테스트 전용 Mock 카메라는 아래 흐름으로 사용할 수 있습니다.
+
+1. `yoonvision::camera::mock::RegisterMockCameraFactory("mock")`
+2. `CameraFactory::CreateContextManager("mock")`
+3. `CameraFactory::CreateCamera("mock", param)`
+4. `Initialize() -> StreamOn() -> Capture()`
 
 ## 빌드 산출물 정리
 

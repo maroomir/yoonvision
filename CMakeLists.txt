@@ -12,22 +12,27 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/preset.cmake)
 include(FindPkgConfig)
 pkg_check_modules(JPEG REQUIRED libjpeg)
 
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+
 file(GLOB_RECURSE YOONVISION_SOURCES CONFIGURE_DEPENDS src/*.cpp)
 
+if(BUILD_TESTS)
+  enable_testing()
+endif()
+
 add_library(yoonvision ${YOONVISION_SOURCES})
-add_library(yoonimage ALIAS yoonvision)
 
 target_include_directories(
   yoonvision
   PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${JPEG_INCLUDE_DIRS})
 
 target_link_directories(yoonvision PUBLIC ${JPEG_LIBRARY_DIRS})
 target_link_libraries(yoonvision PUBLIC ${JPEG_LIBRARIES})
 
+add_subdirectory(yooncamera)
+
 if(BUILD_TESTS)
-  enable_testing()
   add_subdirectory(test)
 endif()
 
