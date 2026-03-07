@@ -12,6 +12,18 @@ option(BUILD_TESTS "Build test target" ON)
 include(GNUInstallDirs)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/preset.cmake)
 
+# macOS 동적 라이브러리 탐색 경로(RPATH) 설정
+if(APPLE)
+  set(CMAKE_MACOSX_RPATH ON)
+  set(CMAKE_SKIP_BUILD_RPATH FALSE)
+  set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+  set(CMAKE_BUILD_RPATH
+    "${CMAKE_BINARY_DIR};${CMAKE_BINARY_DIR}/yooncamera;${CMAKE_BINARY_DIR}/yooncamera/avfcam"
+  )
+  set(CMAKE_INSTALL_RPATH "@loader_path/../lib;@executable_path/../lib")
+  set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+endif()
+
 # 의존성 설정
 include(FindPkgConfig)
 pkg_check_modules(JPEG REQUIRED libjpeg)
