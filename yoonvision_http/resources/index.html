@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Yoonvision HTTP Server</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { color: #333; }
+    h2 { color: #666; margin-top: 30px; }
+    .section { margin-bottom: 30px; }
+    .streams-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .stream-container { border: 1px solid #ddd; padding: 10px; border-radius: 5px; }
+    .stream-title { font-size: 16px; font-weight: bold; margin-bottom: 10px; text-align: center; }
+    img { width: 100%; height: auto; display: block; }
+    .empty-state { color: #999; font-style: italic; }
+  </style>
+</head>
+<body>
+  <h1>Yoonvision HTTP Server</h1>
+
+  <div class="section">
+    <h2>Image Streams</h2>
+    ${streams_content}
+  </div>
+
+</body>
+</html>

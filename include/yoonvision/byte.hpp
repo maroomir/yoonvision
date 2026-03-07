@@ -11,8 +11,7 @@ namespace yoonvision {
 
 using byte = unsigned char;
 
-namespace byte_util {
-
+namespace {
 inline std::vector<byte> ToByte(const int &number) {
   std::vector<byte> bytes(4);
   bytes[0] = number & 0xFF;
@@ -34,8 +33,7 @@ inline int ToInteger(const std::vector<byte> &bytes,
   number |= (bytes[3] << 24);
   return number;
 }
-
-}  // namespace byte_util
+}  // namespace
 
 }  // namespace yoonvision
 

@@ -1,0 +1,9 @@
+prefix=@PREFIX@
+libdir=${prefix}/@LIBDIR@
+includedir=@INCLUDEDIR@
+
+Name: libyoonvision_http
+Description: yoonvision HTTP image viewer library
+Version: @VERSION@
+Libs: -L${libdir} -lyoonvision_http
+Cflags: -I${includedir}

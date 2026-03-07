@@ -70,7 +70,7 @@ class Image {
   bool SaveJpeg(const std::string& path) const;
 
  private:
-  friend class ImageBuilder;
+  friend class ImageBuilder;  // private 생성자 접근 허용
 
   Image(size_t width, size_t height, size_t channel);
   Image(const std::vector<byte>& buffer, size_t width, size_t height,

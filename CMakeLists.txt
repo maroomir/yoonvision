@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(BUILD_TESTS "Build test target" ON)
+option(BUILD_HTTP_VIEWER "Build HTTP image viewer" ON)
 
 # CMake preset / 설치 경로 설정
 include(GNUInstallDirs)
@@ -18,7 +19,7 @@ if(APPLE)
   set(CMAKE_SKIP_BUILD_RPATH FALSE)
   set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
   set(CMAKE_BUILD_RPATH
-    "${CMAKE_BINARY_DIR};${CMAKE_BINARY_DIR}/yooncamera;${CMAKE_BINARY_DIR}/yooncamera/avfcam"
+    "${CMAKE_BINARY_DIR};${CMAKE_BINARY_DIR}/yooncamera;${CMAKE_BINARY_DIR}/yooncamera/avfcam;${CMAKE_BINARY_DIR}/yoonvision_http"
   )
   set(CMAKE_INSTALL_RPATH "@loader_path/../lib;@executable_path/../lib")
   set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
@@ -61,6 +62,10 @@ target_link_libraries(${PROJECT_NAME}
 
 # 하위 모듈 빌드
 add_subdirectory(yooncamera)
+
+if(BUILD_HTTP_VIEWER)
+  add_subdirectory(yoonvision_http)
+endif()
 
 if(BUILD_TESTS)
   add_subdirectory(test)

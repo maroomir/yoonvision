@@ -73,7 +73,7 @@ Image ImageBuilder::Build() const {
       Image image(width_, height_, kChannel);
       std::vector<byte>& dst = image.GetBuffer();
       for (size_t i = 0; i < width_ * height_; i++) {
-        std::vector<byte> bytes = byte_util::ToByte(int_buffer_[i]);
+        std::vector<byte> bytes = ToByte(int_buffer_[i]);
         std::copy(bytes.begin(), bytes.begin() + kChannel,
                   dst.begin() + i * kChannel);
       }
@@ -161,8 +161,6 @@ Image ImageBuilder::Build() const {
       return Image();
   }
 }
-
-// --- 팩토리 정적 메서드 ---
 
 Image ImageBuilder::GrayPaletteBar(int width, int height, int step) {
   int actual_width = width * step;
