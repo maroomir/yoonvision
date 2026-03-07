@@ -5,6 +5,7 @@
 #import <CoreVideo/CoreVideo.h>
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <thread>
 
@@ -15,18 +16,23 @@
     : NSObject <AVCaptureVideoDataOutputSampleBufferDelegate>
 - (instancetype)initWithCamera:
     (yoonvision::camera::avfcam::AvfCamera*)camera;
+- (void)invalidateCamera;
 @end
 
 @implementation AvfFrameDelegate {
-  yoonvision::camera::avfcam::AvfCamera* camera_;
+  std::atomic<yoonvision::camera::avfcam::AvfCamera*> camera_;
 }
 
 - (instancetype)initWithCamera:
     (yoonvision::camera::avfcam::AvfCamera*)camera {
   if (self = [super init]) {
-    camera_ = camera;
+    camera_.store(camera, std::memory_order_release);
   }
   return self;
+}
+
+- (void)invalidateCamera {
+  camera_.store(nullptr, std::memory_order_release);
 }
 
 - (void)captureOutput:(AVCaptureOutput*)output
@@ -34,8 +40,9 @@
            fromConnection:(AVCaptureConnection*)connection {
   (void)output;
   (void)connection;
-  if (camera_) {
-    camera_->OnSampleBuffer(static_cast<void*>(sampleBuffer));
+  auto* camera = camera_.load(std::memory_order_acquire);
+  if (camera) {
+    camera->OnSampleBuffer(static_cast<void*>(sampleBuffer));
   }
 }
 
@@ -240,6 +247,18 @@ void AvfCamera::Close() {
   StreamOff();
 
   @autoreleasepool {
+    if (impl_->video_output) {
+      [impl_->video_output setSampleBufferDelegate:nil queue:nullptr];
+    }
+    if (impl_->delegate) {
+      [impl_->delegate invalidateCamera];
+    }
+
+    if (impl_->capture_queue) {
+      dispatch_sync(impl_->capture_queue, ^{
+      });
+    }
+
     if (impl_->session) {
       if (impl_->device_input &&
           [impl_->session.inputs containsObject:impl_->device_input]) {
