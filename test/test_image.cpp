@@ -33,29 +33,29 @@ TEST(ImageTest, DefaultConstructorHasExpectedProperties) {
 
   Image image;
 
-  ASSERT_EQ(image.Width(), 640);
-  ASSERT_EQ(image.Height(), 480);
-  ASSERT_EQ(image.Channel(), 1);
-  ASSERT_EQ(image.Stride(), 640);
+  ASSERT_EQ(image.GetWidth(), 640);
+  ASSERT_EQ(image.GetHeight(), 480);
+  ASSERT_EQ(image.GetChannel(), 1);
+  ASSERT_EQ(image.GetStride(), 640);
   ASSERT_FALSE(image.GetBuffer().empty());
 }
 
 TEST(ImageTest, ConstructorWithSizeAndChannelHasExpectedProperties) {
   using yoonvision::Image;
-  using yoonvision::image::ImageFormat;
+  using ImageFormat = yoonvision::Image::ImageFormat;
 
   Image image(10, 20, 3);
 
-  ASSERT_EQ(image.Width(), 10);
-  ASSERT_EQ(image.Height(), 20);
-  ASSERT_EQ(image.Channel(), 3);
-  ASSERT_EQ(image.Stride(), 30);
-  ASSERT_EQ(image.ImageFormat(), ImageFormat::kRgb);
+  ASSERT_EQ(image.GetWidth(), 10);
+  ASSERT_EQ(image.GetHeight(), 20);
+  ASSERT_EQ(image.GetChannel(), 3);
+  ASSERT_EQ(image.GetStride(), 30);
+  ASSERT_EQ(image.GetImageFormat(), ImageFormat::kRgb);
 }
 
 TEST(ImageTest, ToGrayBufferConvertsRgbValuesUsingWeightedFormula) {
   using yoonvision::Image;
-  using yoonvision::image::ImageFormat;
+  using ImageFormat = yoonvision::Image::ImageFormat;
 
   constexpr size_t kWidth = 2;
   constexpr size_t kHeight = 1;
@@ -74,7 +74,7 @@ TEST(ImageTest, ToGrayBufferConvertsRgbValuesUsingWeightedFormula) {
 
 TEST(ImageTest, ToColorBuffersExtractExpectedChannelsFromRgbParallelBuffer) {
   using yoonvision::Image;
-  using yoonvision::image::ImageFormat;
+  using ImageFormat = yoonvision::Image::ImageFormat;
 
   constexpr size_t kWidth = 2;
   constexpr size_t kHeight = 1;
@@ -95,7 +95,7 @@ TEST(ImageTest, ToColorBuffersExtractExpectedChannelsFromRgbParallelBuffer) {
 
 TEST(ImageTest, CloneEqualsAndCopyFromWorkAsExpected) {
   using yoonvision::Image;
-  using yoonvision::image::ImageFormat;
+  using ImageFormat = yoonvision::Image::ImageFormat;
 
   constexpr size_t kWidth = 2;
   constexpr size_t kHeight = 2;
@@ -121,14 +121,14 @@ TEST(ImageTest, PaletteBarFactoryMethodsReturnExpectedDimensionsAndChannels) {
   using yoonvision::Image;
 
   Image gray_bar = Image::GrayPaletteBar(4, 3, 2);
-  ASSERT_EQ(gray_bar.Width(), 8);
-  ASSERT_EQ(gray_bar.Height(), 3);
-  ASSERT_EQ(gray_bar.Channel(), 1);
+  ASSERT_EQ(gray_bar.GetWidth(), 8);
+  ASSERT_EQ(gray_bar.GetHeight(), 3);
+  ASSERT_EQ(gray_bar.GetChannel(), 1);
 
   Image color_bar = Image::ColorPaletteBar(4, 3, 2);
-  ASSERT_EQ(color_bar.Width(), 24);
-  ASSERT_EQ(color_bar.Height(), 3);
-  ASSERT_EQ(color_bar.Channel(), 3);
+  ASSERT_EQ(color_bar.GetWidth(), 24);
+  ASSERT_EQ(color_bar.GetHeight(), 3);
+  ASSERT_EQ(color_bar.GetChannel(), 3);
 }
 
 TEST(ImageTest, LoadAndSaveReturnFalseForInvalidPath) {
@@ -147,17 +147,17 @@ TEST(ImageTest, LoadAndSaveReturnFalseForInvalidPath) {
 
 TEST(ImageTest, LoadJpegHasExpectedDimensions) {
   using yoonvision::Image;
-  using yoonvision::image::FileFormat;
+  using FileFormat = yoonvision::Image::FileFormat;
 
   Image image(GetLenaJpegPath(), FileFormat::kJpeg);
 
-  ASSERT_EQ(image.Width(), 512);
-  ASSERT_EQ(image.Height(), 512);
+  ASSERT_EQ(image.GetWidth(), 512);
+  ASSERT_EQ(image.GetHeight(), 512);
 }
 
 TEST(ImageTest, OriginalImageCanBeSavedAsBitmapAndJpeg) {
   using yoonvision::Image;
-  using yoonvision::image::FileFormat;
+  using FileFormat = yoonvision::Image::FileFormat;
 
   const std::string result_dir_path = GetResultDirPath();
   Image image(GetLenaJpegPath(), FileFormat::kJpeg);
@@ -168,7 +168,7 @@ TEST(ImageTest, OriginalImageCanBeSavedAsBitmapAndJpeg) {
 
 TEST(ImageTest, ToGrayImageCanBeSavedAsBitmap) {
   using yoonvision::Image;
-  using yoonvision::image::FileFormat;
+  using FileFormat = yoonvision::Image::FileFormat;
 
   const std::string result_dir_path = GetResultDirPath();
   Image image(GetLenaJpegPath(), FileFormat::kJpeg);
@@ -180,7 +180,7 @@ TEST(ImageTest, ToGrayImageCanBeSavedAsBitmap) {
 
 TEST(ImageTest, ToRedImageCanBeSavedAsBitmap) {
   using yoonvision::Image;
-  using yoonvision::image::FileFormat;
+  using FileFormat = yoonvision::Image::FileFormat;
 
   const std::string result_dir_path = GetResultDirPath();
   Image image(GetLenaJpegPath(), FileFormat::kJpeg);
@@ -191,7 +191,7 @@ TEST(ImageTest, ToRedImageCanBeSavedAsBitmap) {
 
 TEST(ImageTest, ToGreenImageCanBeSavedAsBitmap) {
   using yoonvision::Image;
-  using yoonvision::image::FileFormat;
+  using FileFormat = yoonvision::Image::FileFormat;
 
   const std::string result_dir_path = GetResultDirPath();
   Image image(GetLenaJpegPath(), FileFormat::kJpeg);
@@ -203,7 +203,7 @@ TEST(ImageTest, ToGreenImageCanBeSavedAsBitmap) {
 
 TEST(ImageTest, ToBlueImageCanBeSavedAsBitmap) {
   using yoonvision::Image;
-  using yoonvision::image::FileFormat;
+  using FileFormat = yoonvision::Image::FileFormat;
 
   const std::string result_dir_path = GetResultDirPath();
   Image image(GetLenaJpegPath(), FileFormat::kJpeg);
@@ -233,19 +233,19 @@ TEST(ImageTest, ColorPaletteBarCanBeSavedAsJpeg) {
 
 TEST(ImageTest, LoadJpegAndCreateDerivedImages) {
   using yoonvision::Image;
-  using yoonvision::image::FileFormat;
+  using FileFormat = yoonvision::Image::FileFormat;
 
   Image image(GetLenaJpegPath(), FileFormat::kJpeg);
-  ASSERT_EQ(image.Width(), 512);
-  ASSERT_EQ(image.Height(), 512);
+  ASSERT_EQ(image.GetWidth(), 512);
+  ASSERT_EQ(image.GetHeight(), 512);
 
   Image gray_image = image.ToGrayImage();
   Image red_image = image.ToRedImage();
   Image green_image = image.ToGreenImage();
   Image blue_image = image.ToBlueImage();
 
-  ASSERT_EQ(gray_image.Channel(), 1);
-  ASSERT_EQ(red_image.Channel(), 1);
-  ASSERT_EQ(green_image.Channel(), 1);
-  ASSERT_EQ(blue_image.Channel(), 1);
+  ASSERT_EQ(gray_image.GetChannel(), 1);
+  ASSERT_EQ(red_image.GetChannel(), 1);
+  ASSERT_EQ(green_image.GetChannel(), 1);
+  ASSERT_EQ(blue_image.GetChannel(), 1);
 }

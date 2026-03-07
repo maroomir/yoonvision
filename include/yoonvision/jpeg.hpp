@@ -7,8 +7,9 @@
 #define YOONVISION_JPEG_HPP_
 
 #include <jpeglib.h>
-
 #include <csetjmp>
+
+#include "byte.hpp"
 
 namespace yoonvision::image::jpeg {
 namespace {
@@ -25,7 +26,7 @@ void JpegErrorExit(j_common_ptr info) {
 }  // namespace
 
 static bool WriteJpegBuffer(const char *path,
-                            const std::vector<unsigned char> &buffer,
+                            const std::vector<byte> &buffer,
                             size_t width, size_t height, int channel,
                             int quality = 100) {
   // JPEG 압축 정보 생성
@@ -60,7 +61,7 @@ static bool WriteJpegBuffer(const char *path,
   size_t stride = width * channel;
   JSAMPROW row[1];
   while (info.next_scanline < info.image_height) {
-    row[0] = const_cast<unsigned char *>(&buffer[info.next_scanline * stride]);
+    row[0] = const_cast<byte *>(&buffer[info.next_scanline * stride]);
     (void)jpeg_write_scanlines(&info, row, 1);
   }
 
@@ -70,7 +71,7 @@ static bool WriteJpegBuffer(const char *path,
   return true;
 }
 
-static bool ReadJpegBuffer(const char *path, std::vector<unsigned char> &result,
+static bool ReadJpegBuffer(const char *path, std::vector<byte> &result,
                            size_t &width, size_t &height, size_t &channel) {
   // JPEG 압축 정보 읽어오기
   struct jpeg_decompress_struct info {};
@@ -101,7 +102,7 @@ static bool ReadJpegBuffer(const char *path, std::vector<unsigned char> &result,
 
   // JPEG buffer 정보를 row 별로 read 해서 복사함
   size_t pixel = 0;
-  std::vector<unsigned char> row_buffer(stride);
+  std::vector<byte> row_buffer(stride);
   JSAMPROW row_ptr[1] = {row_buffer.data()};
   while (info.output_scanline < info.output_height) {
     (void)jpeg_read_scanlines(&info, row_ptr, 1);

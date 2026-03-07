@@ -5,25 +5,28 @@
 #ifndef YOONVISION_BITMAP_HPP_
 #define YOONVISION_BITMAP_HPP_
 
+#include <cstdint>
 #include <cstring>
 #include <fstream>
 #include <iostream>
 #include <memory>
 #include <vector>
 
+#include "byte.hpp"
+
 namespace yoonvision::image::bitmap {
 
 // Save the MSB(Most Significant Bit) first
 inline bool IsBigEndian() {
-  unsigned int value = 0x01;
+  std::uint32_t value = 0x01;
   return (1 != reinterpret_cast<char *>(&value)[0]);  // RISC CPU
 }
 
-inline unsigned short FlipOrder(const unsigned short &value) {
-  return ((value >> 8) || (value << 8));
+inline std::uint16_t FlipOrder(const std::uint16_t &value) {
+  return static_cast<std::uint16_t>((value >> 8) | (value << 8));
 }
 
-inline unsigned int FlipOrder(const unsigned int &value) {
+inline std::uint32_t FlipOrder(const std::uint32_t &value) {
   return (((value & 0xFF000000) >> 24) | ((value & 0x000000FF) << 24) |
           ((value & 0x00FF0000) >> 8) | ((value & 0x0000FF00) << 8));
 }
@@ -46,15 +49,16 @@ void WriteStream(std::ofstream &stream, const T &value) {
 }
 
 struct BitmapFileHeader {
-  unsigned short type;
-  unsigned int size;
-  unsigned short reserved1;
-  unsigned short reserved2;
-  unsigned int off_bits;
+  std::uint16_t type;
+  std::uint32_t size;
+  std::uint16_t reserved1;
+  std::uint16_t reserved2;
+  std::uint32_t off_bits;
 
-  [[nodiscard]] unsigned int HeaderSize() const {
-    return sizeof(type) + sizeof(size) + sizeof(reserved1) + sizeof(reserved2) +
-           sizeof(off_bits);
+  [[nodiscard]] std::uint32_t HeaderSize() const {
+    return static_cast<std::uint32_t>(
+        sizeof(type) + sizeof(size) + sizeof(reserved1) + sizeof(reserved2) +
+        sizeof(off_bits));
   }
 
   void Read(std::ifstream &stream) {
@@ -92,23 +96,24 @@ struct BitmapFileHeader {
 };
 
 struct BitmapInfoHeader {
-  unsigned int size;
-  unsigned int width;
-  unsigned int height;
-  unsigned short planes;
-  unsigned short bit_count;
-  unsigned int compression;
-  unsigned int buffer_size;
-  unsigned int xpels_per_meter;
-  unsigned int ypels_per_meter;
-  unsigned int used_color;
-  unsigned int important_color;
+  std::uint32_t size;
+  std::uint32_t width;
+  std::uint32_t height;
+  std::uint16_t planes;
+  std::uint16_t bit_count;
+  std::uint32_t compression;
+  std::uint32_t buffer_size;
+  std::uint32_t xpels_per_meter;
+  std::uint32_t ypels_per_meter;
+  std::uint32_t used_color;
+  std::uint32_t important_color;
 
-  [[nodiscard]] unsigned int HeaderSize() const {
-    return sizeof(size) + sizeof(width) + sizeof(height) + sizeof(planes) +
-           sizeof(bit_count) + sizeof(compression) + sizeof(buffer_size) +
-           sizeof(xpels_per_meter) + sizeof(ypels_per_meter) +
-           sizeof(used_color) + sizeof(important_color);
+  [[nodiscard]] std::uint32_t HeaderSize() const {
+    return static_cast<std::uint32_t>(
+        sizeof(size) + sizeof(width) + sizeof(height) + sizeof(planes) +
+        sizeof(bit_count) + sizeof(compression) + sizeof(buffer_size) +
+        sizeof(xpels_per_meter) + sizeof(ypels_per_meter) +
+        sizeof(used_color) + sizeof(important_color));
   }
 
   void Read(std::ifstream &stream) {
@@ -170,18 +175,18 @@ struct BitmapInfoHeader {
 };
 
 struct RgbquadPalette {
-  unsigned char blue;
-  unsigned char green;
-  unsigned char red;
-  unsigned char reserved;
+  byte blue;
+  byte green;
+  byte red;
+  byte reserved;
 };
 
 static void WriteBitmapPaletteTable(std::ofstream &stream) {
   std::vector<RgbquadPalette> palette(256);
   for (int i = 0; i < 256; i++) {
-    palette[i].red = static_cast<unsigned char>(i);
-    palette[i].green = static_cast<unsigned char>(i);
-    palette[i].blue = static_cast<unsigned char>(i);
+    palette[i].red = static_cast<byte>(i);
+    palette[i].green = static_cast<byte>(i);
+    palette[i].blue = static_cast<byte>(i);
     palette[i].reserved = 0;
   }
   stream.write(reinterpret_cast<const char *>(palette.data()),
@@ -190,7 +195,7 @@ static void WriteBitmapPaletteTable(std::ofstream &stream) {
 
 static std::vector<RgbquadPalette> ReadBitmapPaletteTable(
     std::ifstream &stream) {
-  std::vector<unsigned char> result_buffer(1024);
+  std::vector<byte> result_buffer(1024);
   stream.read(reinterpret_cast<char *>(result_buffer.data()), 1024);
   std::vector<RgbquadPalette> palette(256);
   for (int i = 0; i < 256; i++) {
@@ -203,29 +208,28 @@ static std::vector<RgbquadPalette> ReadBitmapPaletteTable(
 }
 
 static void WriteBitmapBuffer(std::ofstream &stream,
-                              const std::vector<unsigned char> &buffer,
+                              const std::vector<byte> &buffer,
                               size_t width, size_t height, size_t channel) {
-  unsigned int plane = width * channel;
-  unsigned int padding = (4 - ((3 * width) % 4)) % 4;
-  char pad_buffer[4] = {0x00, 0x00, 0x00, 0x00};
+  std::uint32_t plane = width * channel;
+  std::uint32_t padding = (4 - ((3 * width) % 4)) % 4;
+  byte pad_buffer[4] = {0x00, 0x00, 0x00, 0x00};
   for (size_t h = 0; h < height; ++h) {
     size_t start = (height - h - 1) * plane;
     stream.write(reinterpret_cast<const char *>(buffer.data() + start), plane);
-    stream.write(pad_buffer, padding);
+    stream.write(reinterpret_cast<const char *>(pad_buffer), padding);
   }
 }
 
-static std::vector<unsigned char> ReadBitmapBuffer(std::ifstream &stream,
-                                                   size_t width, size_t height,
-                                                   size_t channel) {
-  unsigned int padding = (4 - ((3 * width) % 4)) % 4;
-  char pad[4] = {0x00, 0x00, 0x00, 0x00};
-  unsigned int plane = width * channel;
-  std::vector<unsigned char> buffer(plane * height);
+static std::vector<byte> ReadBitmapBuffer(std::ifstream &stream, size_t width,
+                                          size_t height, size_t channel) {
+  std::uint32_t padding = (4 - ((3 * width) % 4)) % 4;
+  byte pad[4] = {0x00, 0x00, 0x00, 0x00};
+  std::uint32_t plane = width * channel;
+  std::vector<byte> buffer(plane * height);
   for (size_t h = 0; h < height; ++h) {
     size_t start = (height - h - 1) * plane;
     stream.read(reinterpret_cast<char *>(buffer.data() + start), plane);
-    stream.read(pad, padding);
+    stream.read(reinterpret_cast<char *>(pad), padding);
   }
   return buffer;
 }
