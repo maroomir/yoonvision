@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.14)
 include(FetchContent)
 
 find_package(GTest QUIET)
-if(NOT GTest_FOUND)
+if(NOT GTest_FOUND AND NOT TARGET GTest::gtest_main)
   FetchContent_Declare(
     googletest
     URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip)
