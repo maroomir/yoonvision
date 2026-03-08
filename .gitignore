@@ -8,6 +8,9 @@ build
 install
 .clang-format
 
+# cursor
+.cursor
+
 # maroomir
 .DS_Store
 result

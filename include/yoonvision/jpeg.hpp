@@ -15,8 +15,6 @@
 
 namespace yoonvision::image::jpeg {
 namespace {
-constexpr size_t kMemoryBufferSize = 65536;
-
 struct ErrorManager {
   struct jpeg_error_mgr publisher {};
   jmp_buf buffer{};
@@ -26,36 +24,6 @@ void JpegErrorExit(j_common_ptr info) {
   auto *err = (ErrorManager *)info->err;
   (info->err->output_message)(info);
   longjmp(err->buffer, 1);
-}
-
-struct JpegMemoryContext {
-  struct jpeg_destination_mgr pub;
-  std::vector<byte>* out;
-  std::vector<byte> chunk;
-};
-
-void JpegMemoryInit(j_compress_ptr cinfo) {
-  auto* ctx = reinterpret_cast<JpegMemoryContext*>(cinfo->dest);
-  ctx->chunk.resize(kMemoryBufferSize);
-  ctx->pub.next_output_byte = ctx->chunk.data();
-  ctx->pub.free_in_buffer = ctx->chunk.size();
-}
-
-boolean JpegMemoryEmpty(j_compress_ptr cinfo) {
-  auto* ctx = reinterpret_cast<JpegMemoryContext*>(cinfo->dest);
-  size_t used = ctx->chunk.size() - ctx->pub.free_in_buffer;
-  ctx->out->insert(ctx->out->end(), ctx->chunk.begin(), ctx->chunk.begin() + used);
-  ctx->pub.next_output_byte = ctx->chunk.data();
-  ctx->pub.free_in_buffer = ctx->chunk.size();
-  return TRUE;
-}
-
-void JpegMemoryTerminate(j_compress_ptr cinfo) {
-  auto* ctx = reinterpret_cast<JpegMemoryContext*>(cinfo->dest);
-  size_t used = ctx->chunk.size() - ctx->pub.free_in_buffer;
-  if (used > 0) {
-    ctx->out->insert(ctx->out->end(), ctx->chunk.begin(), ctx->chunk.begin() + used);
-  }
 }
 
 bool SetupCompressParams(j_compress_ptr cinfo, size_t width, size_t height,
@@ -88,22 +56,6 @@ void WriteScanlinesFromBuffer(j_compress_ptr cinfo,
     row[0] = const_cast<byte*>(&buffer[cinfo->next_scanline * stride]);
     (void)jpeg_write_scanlines(cinfo, row, 1);
   }
-}
-
-JpegMemoryContext* SetupMemoryDestination(j_compress_ptr cinfo,
-                                         std::vector<byte>* out) {
-  auto* ctx = static_cast<JpegMemoryContext*>(malloc(sizeof(JpegMemoryContext)));
-  if (!ctx) {
-    return nullptr;
-  }
-  ctx->out = out;
-  ctx->pub.init_destination = JpegMemoryInit;
-  ctx->pub.empty_output_buffer = JpegMemoryEmpty;
-  ctx->pub.term_destination = JpegMemoryTerminate;
-  ctx->pub.next_output_byte = nullptr;
-  ctx->pub.free_in_buffer = 0;
-  cinfo->dest = reinterpret_cast<jpeg_destination_mgr*>(&ctx->pub);
-  return ctx;
 }
 
 bool PrepareDecompressFromFile(j_decompress_ptr cinfo, FILE* file,
@@ -200,19 +152,21 @@ inline bool EncodeJpegMemory(const std::vector<byte>& buffer,
   if (buffer.size() < width * height * static_cast<size_t>(channel)) {
     return false;
   }
+  out.clear();
+
   struct jpeg_compress_struct info {};
   struct jpeg_error_mgr err {};
   info.err = jpeg_std_error(&err);
   jpeg_create_compress(&info);
 
-  JpegMemoryContext* ctx = SetupMemoryDestination(&info, &out);
-  if (!ctx) {
-    jpeg_destroy_compress(&info);
-    return false;
-  }
+  unsigned char* encoded = nullptr;
+  unsigned long encoded_size = 0;
+  jpeg_mem_dest(&info, &encoded, &encoded_size);
 
   if (!SetupCompressParams(&info, width, height, channel, quality)) {
-    free(ctx);
+    if (encoded) {
+      free(encoded);
+    }
     jpeg_destroy_compress(&info);
     return false;
   }
@@ -221,9 +175,17 @@ inline bool EncodeJpegMemory(const std::vector<byte>& buffer,
   WriteScanlinesFromBuffer(&info, buffer, stride);
 
   jpeg_finish_compress(&info);
-  free(ctx);
+
+  if (encoded && encoded_size > 0) {
+    out.assign(encoded, encoded + encoded_size);
+  }
+
+  if (encoded) {
+    free(encoded);
+  }
+
   jpeg_destroy_compress(&info);
-  return true;
+  return !out.empty();
 }
 
 }  // namespace yoonvision::image::jpeg

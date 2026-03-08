@@ -9,14 +9,6 @@
 namespace yoonvision {
 namespace http {
 
-StreamRenderer::StreamRenderer(GetStreamCallback get_stream,
-                               const std::atomic<bool>* running)
-    : get_stream_(std::move(get_stream)), running_(running) {}
-
-void StreamRenderer::SetResourcePath(const std::string& path) {
-  (void)path;
-}
-
 namespace {
 
 std::vector<byte> ImageToRgbInterleaved(const Image& img) {
@@ -58,6 +50,7 @@ std::vector<byte> ImageToRgbInterleaved(const Image& img) {
       }
       break;
     case Image::ImageFormat::kRgbMixed:
+      return buf;
     case Image::ImageFormat::kBgrMixed: {
       for (size_t i = 0; i < w * h; i++) {
         out[i * 3 + 0] = buf[i * 3 + 2];
@@ -72,6 +65,14 @@ std::vector<byte> ImageToRgbInterleaved(const Image& img) {
 }
 
 }  // namespace
+
+StreamRenderer::StreamRenderer(GetStreamCallback get_stream,
+                               const std::atomic<bool>* running)
+    : get_stream_(std::move(get_stream)), running_(running) {}
+
+void StreamRenderer::SetResourcePath(const std::string& path) {
+  (void)path;
+}
 
 void StreamRenderer::Render(const httplib::Request& req,
                             httplib::Response& res) {
