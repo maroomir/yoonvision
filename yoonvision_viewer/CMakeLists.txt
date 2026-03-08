@@ -1,9 +1,8 @@
 project(yoonvision_viewer LANGUAGES CXX)
 
 # 소스 파일
-set(YOONVISION_VIEWER_SOURCES
-  src/main.cpp
-  src/vision_application.cpp
+file(GLOB YOONVISION_VIEWER_SOURCES CONFIGURE_DEPENDS
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
 )
 
 # 실행 파일 생성
@@ -12,7 +11,7 @@ add_executable(${PROJECT_NAME} ${YOONVISION_VIEWER_SOURCES})
 # 인클루드 경로 설정
 target_include_directories(${PROJECT_NAME}
   PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/yooncamera/include
     ${CMAKE_SOURCE_DIR}/yoonvision_http/include

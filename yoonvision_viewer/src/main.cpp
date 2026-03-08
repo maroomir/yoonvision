@@ -2,7 +2,7 @@
 #include <atomic>
 #include <cstdio>
 
-#include "vision_application.hpp"
+#include "yoonvision_viewer/vision_application.hpp"
 
 std::atomic<bool> g_should_shutdown(false);
 

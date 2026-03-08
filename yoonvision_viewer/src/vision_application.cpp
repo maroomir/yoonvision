@@ -1,9 +1,10 @@
-#include "vision_application.hpp"
+#include "yoonvision_viewer/vision_application.hpp"
 
 #include <atomic>
 #include <chrono>
 #include <thread>
 
+#include "yoonvision_viewer/frame_publisher_subscriber.hpp"
 #include "log.hpp"
 #include "yooncamera/camera_factory.hpp"
 
@@ -18,13 +19,6 @@ constexpr char kCameraType[] = "avfcam";
 constexpr uint16_t kCameraTimeoutMs = 2000;
 }  // namespace
 
-VisionApplication::CameraSubscriber::CameraSubscriber(VisionApplication* app)
-    : app_(app) {}
-
-void VisionApplication::CameraSubscriber::OnFrame(const Image::Ptr& frame) {
-  app_->on_frame(frame);
-}
-
 VisionApplication::VisionApplication()
     : http_server_(std::make_shared<http::HTTPServer>()), initialized_(false) {}
 
@@ -36,7 +30,6 @@ bool VisionApplication::Initialize(int port,
                                     const std::string& resources_path) {
   LOG_INFO("Initializing VisionApplication...");
 
-  // 카메라 생성
   auto param = std::make_shared<camera::CameraParameter>();
   param->name = "webcam";
   param->timeout_ms = kCameraTimeoutMs;
@@ -57,7 +50,7 @@ bool VisionApplication::Initialize(int port,
     return false;
   }
 
-  subscriber_ = std::make_shared<CameraSubscriber>(this);
+  subscriber_ = std::make_shared<FramePublisherSubscriber>(image_publisher_);
   camera_->Subscribe(subscriber_);
   LOG_INFO("Camera initialized and subscriber registered");
   http_server_->Initialize(port, resources_path);
@@ -117,14 +110,6 @@ void VisionApplication::Shutdown() {
 
   initialized_ = false;
   LOG_INFO("VisionApplication terminated");
-}
-
-void VisionApplication::on_frame(const Image::Ptr& frame) {
-  if (!frame) {
-    return;
-  }
-  image_publisher_.SetImage(frame);
-  image_publisher_.Publish();
 }
 
 }  // namespace yoonvision::viewer

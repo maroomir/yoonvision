@@ -20,17 +20,6 @@ class VisionApplication {
   void Shutdown();
 
  private:
-  class CameraSubscriber : public camera::IFrameSubscriber {
-   public:
-    explicit CameraSubscriber(VisionApplication* app);
-    void OnFrame(const Image::Ptr& frame) override;
-
-   private:
-    VisionApplication* app_;
-  };
-
-  void on_frame(const Image::Ptr& frame);
-
   camera::ICamera::Ptr camera_;
   camera::IFrameSubscriber::Ptr subscriber_;
 
