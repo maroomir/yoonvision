@@ -1,0 +1,9 @@
+prefix=@PREFIX@
+libdir=${prefix}/@LIBDIR@
+includedir=@INCLUDEDIR@
+
+Name: libyooncompute
+Description: yooncompute deep learning compute library
+Version: @VERSION@
+Libs: -L${libdir} -lyooncompute
+Cflags: -I${includedir}
