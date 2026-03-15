@@ -14,6 +14,7 @@
 namespace yoonvision {
 
 class ImageBuilder;
+class ImageProcessor;
 
 class Image {
  public:
@@ -52,25 +53,21 @@ class Image {
 
   ImageFormat GetImageFormat() const;
 
-  Image ToGrayImage() const;
-  Image ToRedImage() const;
-  Image ToGreenImage() const;
-  Image ToBlueImage() const;
+  byte& operator()(size_t y, size_t x, size_t c);
+  const byte& operator()(size_t y, size_t x, size_t c) const;
 
-  std::vector<byte> ToGrayBuffer() const;
-  std::vector<byte> ToRedBuffer() const;
-  std::vector<byte> ToGreenBuffer() const;
-  std::vector<byte> ToBlueBuffer() const;
+  bool operator==(const Image& image) const;
+  bool operator!=(const Image& image) const;
 
   void CopyFrom(const Image& image);
   Image Clone() const;
-  bool Equals(const Image& image) const;
 
   bool SaveBitmap(const std::string& path) const;
   bool SaveJpeg(const std::string& path) const;
 
  private:
   friend class ImageBuilder;  // private 생성자 접근 허용
+  friend class ImageProcessor;  // private 생성자 접근 허용
 
   Image(size_t width, size_t height, size_t channel);
   Image(const std::vector<byte>& buffer, size_t width, size_t height,

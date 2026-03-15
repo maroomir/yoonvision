@@ -175,6 +175,28 @@ std::vector<byte> Image::GetMixedColorBuffer() const {
   return result;
 }
 
+byte& Image::operator()(size_t y, size_t x, size_t c) {
+  const size_t idx = c * width_ * height_ + y * width_ + x;
+  return buffer_[idx];
+}
+
+const byte& Image::operator()(size_t y, size_t x, size_t c) const {
+  const size_t idx = c * width_ * height_ + y * width_ + x;
+  return buffer_[idx];
+}
+
+bool Image::operator==(const Image& image) const {
+  if (width_ != image.width_ || height_ != image.height_ ||
+      channel_ != image.channel_ || format_ != image.format_) {
+    return false;
+  }
+  return buffer_ == image.buffer_;
+}
+
+bool Image::operator!=(const Image& image) const {
+  return !(*this == image);
+}
+
 void Image::CopyFrom(const Image& image) {
   width_ = image.width_;
   height_ = image.height_;
@@ -185,133 +207,6 @@ void Image::CopyFrom(const Image& image) {
 
 Image Image::Clone() const {
   return Image(buffer_, width_, height_, format_);
-}
-
-bool Image::Equals(const Image& image) const {
-  if (width_ != image.width_ || height_ != image.height_ ||
-      channel_ != image.channel_ || format_ != image.format_) {
-    return false;
-  }
-  return buffer_ == image.buffer_;
-}
-
-std::vector<byte> Image::ToGrayBuffer() const {
-  size_t size = width_ * height_;
-  std::vector<byte> result(size);
-  switch (format_) {
-    case Image::ImageFormat::kGray:
-      result = buffer_;
-      break;
-    case Image::ImageFormat::kRgb:
-      for (size_t h = 0; h < height_; h++) {
-        for (size_t w = 0; w < width_; w++) {
-          size_t pos = h * width_ + w;
-          byte red = buffer_[pos];
-          byte green = buffer_[size + pos];
-          byte blue = buffer_[2 * size + pos];
-          result[pos] =
-              static_cast<byte>(0.299 * red + 0.587 * green + 0.114 * blue);
-        }
-      }
-      break;
-    case Image::ImageFormat::kBgr:
-      for (size_t h = 0; h < height_; h++) {
-        for (size_t w = 0; w < width_; w++) {
-          size_t pos = h * width_ + w;
-          byte blue = buffer_[pos];
-          byte green = buffer_[size + pos];
-          byte red = buffer_[2 * size + pos];
-          result[pos] =
-              static_cast<byte>(0.299 * red + 0.587 * green + 0.114 * blue);
-        }
-      }
-      break;
-    default:
-      LOG_WARN("ToGrayBuffer: unsupported format: %d",
-               static_cast<int>(format_));
-      std::fill(result.begin(), result.end(), 0);
-      break;
-  }
-  return result;
-}
-
-Image Image::ToGrayImage() const {
-  return Image(ToGrayBuffer(), width_, height_, Image::ImageFormat::kGray);
-}
-
-std::vector<byte> Image::ToRedBuffer() const {
-  size_t size = width_ * height_;
-  std::vector<byte> result(size);
-  switch (format_) {
-    case Image::ImageFormat::kGray:
-    case Image::ImageFormat::kRgb:  // "R" G B
-      std::copy(buffer_.begin(), buffer_.begin() + size, result.begin());
-      break;
-    case Image::ImageFormat::kBgr:  // B G "R"
-      std::copy(buffer_.begin() + size * 2, buffer_.begin() + size * 3,
-                result.begin());
-      break;
-    default:
-      LOG_WARN("ToRedBuffer: unsupported format: %d",
-               static_cast<int>(format_));
-      std::fill(result.begin(), result.end(), 0);
-      break;
-  }
-  return result;
-}
-
-Image Image::ToRedImage() const {
-  return Image(ToRedBuffer(), width_, height_, ImageFormat::kGray);
-}
-
-std::vector<byte> Image::ToGreenBuffer() const {
-  size_t size = width_ * height_;
-  std::vector<byte> result(size);
-  switch (format_) {
-    case Image::ImageFormat::kGray:
-      std::copy(buffer_.begin(), buffer_.begin() + size, result.begin());
-      break;
-    case Image::ImageFormat::kRgb:  // R "G" B
-    case Image::ImageFormat::kBgr:  // B "G" R
-      std::copy(buffer_.begin() + size, buffer_.begin() + size * 2,
-                result.begin());
-      break;
-    default:
-      LOG_WARN("ToGreenBuffer: unsupported format: %d",
-               static_cast<int>(format_));
-      std::fill(result.begin(), result.end(), 0);
-      break;
-  }
-  return result;
-}
-
-Image Image::ToGreenImage() const {
-  return Image(ToGreenBuffer(), width_, height_, ImageFormat::kGray);
-}
-
-std::vector<byte> Image::ToBlueBuffer() const {
-  size_t size = width_ * height_;
-  std::vector<byte> result(size);
-  switch (format_) {
-    case Image::ImageFormat::kGray:
-    case Image::ImageFormat::kBgr:  // "B" G R
-      std::copy(buffer_.begin(), buffer_.begin() + size, result.begin());
-      break;
-    case Image::ImageFormat::kRgb:  // R G "B"
-      std::copy(buffer_.begin() + size * 2, buffer_.begin() + size * 3,
-                result.begin());
-      break;
-    default:
-      LOG_WARN("ToBlueBuffer: unsupported format: %d",
-               static_cast<int>(format_));
-      std::fill(result.begin(), result.end(), 0);
-      break;
-  }
-  return result;
-}
-
-Image Image::ToBlueImage() const {
-  return Image(ToBlueBuffer(), width_, height_, ImageFormat::kGray);
 }
 
 bool Image::SaveBitmap(const std::string& path) const {
