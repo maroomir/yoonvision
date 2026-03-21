@@ -26,7 +26,6 @@ target_compile_definitions(${PROJECT_NAME}
 # 링크 라이브러리
 target_link_libraries(${PROJECT_NAME}
   PRIVATE
-    yoonvision
     yooncamera
     yoonvision_http
 )

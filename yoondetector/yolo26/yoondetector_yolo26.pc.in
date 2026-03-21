@@ -1,0 +1,12 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}
+libdir=@CMAKE_INSTALL_LIBDIR@
+includedir=${prefix}/include
+
+Name: yoondetector_yolo26
+Description: YOLO26 extension module for yoondetector (yooncompute backend)
+Version: @PROJECT_VERSION@
+Requires: yoondetector yooncompute
+Libs: -L${libdir} -lyoondetector_yolo26
+Cflags: -I${includedir}
+

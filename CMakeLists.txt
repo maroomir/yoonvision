@@ -64,6 +64,7 @@ target_link_libraries(${PROJECT_NAME}
 # 하위 모듈 빌드
 add_subdirectory(yooncamera)
 add_subdirectory(yooncompute)
+add_subdirectory(yoondetector)
 
 if(BUILD_HTTP_VIEWER)
   add_subdirectory(yoonvision_http)
