@@ -8,6 +8,7 @@
 #include <iomanip>
 #include <sstream>
 #include <string>
+#include <utility>
 
 #include "build_mode.hpp"
 
@@ -53,69 +54,77 @@ inline const char* SafeFunctionName(const char* function_name) {
   return function_name != nullptr ? function_name : "unknown";
 }
 
+inline void PrintLogMessage(const char* level, const char* file_name, int line,
+                            const char* function_name, const char* fmt) {
+  std::printf("%s %s: %s:%-3d %-20s: %s\n", CurrentTimestamp().c_str(), level,
+              file_name, line, function_name, fmt != nullptr ? fmt : "");
+}
+
+template <typename... Args>
+inline void PrintLogMessage(const char* level, const char* file_name, int line,
+                            const char* function_name, const char* fmt,
+                            Args&&... args) {
+  std::printf("%s %s: %s:%-3d %-20s: ", CurrentTimestamp().c_str(), level,
+              file_name, line, function_name);
+  std::printf(fmt != nullptr ? fmt : "", std::forward<Args>(args)...);
+  std::printf("\n");
+}
+
 }  // namespace yoonvision::log
 
-#define LOG_INFO(fmt, ...)                                                \
+#define LOG_INFO(...)                                                     \
   do {                                                                    \
-    std::printf("%s I: %s:%-3d %-20s: " fmt "\n",                         \
-                ::yoonvision::log::CurrentTimestamp().c_str(),   \
-                ::yoonvision::log::BaseName(__FILE__), __LINE__, \
-                ::yoonvision::log::SafeFunctionName(__func__),   \
-                ##__VA_ARGS__);                                           \
+    ::yoonvision::log::PrintLogMessage(                                   \
+        "I", ::yoonvision::log::BaseName(__FILE__), __LINE__,            \
+        ::yoonvision::log::SafeFunctionName(__func__), __VA_ARGS__);      \
   } while (0)
 
-#define LOG_WARN(fmt, ...)                                                \
+#define LOG_WARN(...)                                                     \
   do {                                                                    \
-    std::printf("%s W: %s:%-3d %-20s: " fmt "\n",                         \
-                ::yoonvision::log::CurrentTimestamp().c_str(),   \
-                ::yoonvision::log::BaseName(__FILE__), __LINE__, \
-                ::yoonvision::log::SafeFunctionName(__func__),   \
-                ##__VA_ARGS__);                                           \
+    ::yoonvision::log::PrintLogMessage(                                   \
+        "W", ::yoonvision::log::BaseName(__FILE__), __LINE__,            \
+        ::yoonvision::log::SafeFunctionName(__func__), __VA_ARGS__);      \
   } while (0)
 
-#define LOG_ERROR(fmt, ...)                                               \
+#define LOG_ERROR(...)                                                    \
   do {                                                                    \
-    std::printf("%s E: %s:%-3d %-20s: " fmt "\n",                         \
-                ::yoonvision::log::CurrentTimestamp().c_str(),   \
-                ::yoonvision::log::BaseName(__FILE__), __LINE__, \
-                ::yoonvision::log::SafeFunctionName(__func__),   \
-                ##__VA_ARGS__);                                           \
+    ::yoonvision::log::PrintLogMessage(                                   \
+        "E", ::yoonvision::log::BaseName(__FILE__), __LINE__,            \
+        ::yoonvision::log::SafeFunctionName(__func__), __VA_ARGS__);      \
   } while (0)
 
-#define LOG_DEBUG(fmt, ...)                                               \
+#define LOG_DEBUG(...)                                                    \
   do {                                                                    \
-    std::printf("%s D: %s:%-3d %-20s: " fmt "\n",                         \
-                ::yoonvision::log::CurrentTimestamp().c_str(),   \
-                ::yoonvision::log::BaseName(__FILE__), __LINE__, \
-                ::yoonvision::log::SafeFunctionName(__func__),   \
-                ##__VA_ARGS__);                                           \
+    ::yoonvision::log::PrintLogMessage(                                   \
+        "D", ::yoonvision::log::BaseName(__FILE__), __LINE__,            \
+        ::yoonvision::log::SafeFunctionName(__func__), __VA_ARGS__);      \
   } while (0)
 
-#define LOG_INFO2(fmt, ...)                                 \
+#define LOG_INFO2(...)                                      \
   do {                                                      \
     if constexpr (::yoonvision::BuildMode::IsDebugMode()) { \
-      LOG_INFO(fmt, ##__VA_ARGS__);                         \
+      LOG_INFO(__VA_ARGS__);                                \
     }                                                       \
   } while (0)
 
-#define LOG_WARN2(fmt, ...)                                 \
+#define LOG_WARN2(...)                                      \
   do {                                                      \
     if constexpr (::yoonvision::BuildMode::IsDebugMode()) { \
-      LOG_WARN(fmt, ##__VA_ARGS__);                         \
+      LOG_WARN(__VA_ARGS__);                                \
     }                                                       \
   } while (0)
 
-#define LOG_ERROR2(fmt, ...)                                \
+#define LOG_ERROR2(...)                                     \
   do {                                                      \
     if constexpr (::yoonvision::BuildMode::IsDebugMode()) { \
-      LOG_ERROR(fmt, ##__VA_ARGS__);                        \
+      LOG_ERROR(__VA_ARGS__);                               \
     }                                                       \
   } while (0)
 
-#define LOG_DEBUG2(fmt, ...)                                \
+#define LOG_DEBUG2(...)                                     \
   do {                                                      \
     if constexpr (::yoonvision::BuildMode::IsDebugMode()) { \
-      LOG_DEBUG(fmt, ##__VA_ARGS__);                        \
+      LOG_DEBUG(__VA_ARGS__);                               \
     }                                                       \
   } while (0)
 
