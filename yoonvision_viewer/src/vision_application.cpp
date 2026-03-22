@@ -2,11 +2,18 @@
 
 #include <atomic>
 #include <chrono>
+#include <filesystem>
 #include <thread>
 
 #include "yoonvision_viewer/frame_publisher_subscriber.hpp"
 #include "log.hpp"
 #include "yooncamera/camera_factory.hpp"
+#include "yoondetector/detector_factory.hpp"
+
+#ifndef YOONVISION_YOLO26_MODEL_PATH
+#define YOONVISION_YOLO26_MODEL_PATH \
+  "yoondetector/yolo26/models/yolo26n.onnx"
+#endif
 
 extern std::atomic<bool> g_should_shutdown;
 
@@ -14,9 +21,11 @@ namespace yoonvision::viewer {
 
 namespace {
 constexpr int kMainLoopSleepMs = 10;
-constexpr char kStreamId[] = "webcam";
+constexpr char kRawStreamId[] = "webcam";
+constexpr char kOverlayStreamId[] = "webcam_yolo";
 constexpr char kCameraType[] = "avfcam";
 constexpr uint16_t kCameraTimeoutMs = 2000;
+constexpr std::uint32_t kInferenceIntervalFrames = 3;
 }  // namespace
 
 VisionApplication::VisionApplication()
@@ -50,15 +59,51 @@ bool VisionApplication::Initialize(int port,
     return false;
   }
 
-  subscriber_ = std::make_shared<FramePublisherSubscriber>(image_publisher_);
-  camera_->Subscribe(subscriber_);
-  LOG_INFO("Camera initialized and subscriber registered");
   http_server_->Initialize(port, resources_path);
   http_server_->Start();
   LOG_INFO("HTTP server started on port %d", port);
 
-  image_publisher_.Initialize(http_server_, kStreamId);
-  LOG_INFO("ImagePublisher initialized (stream_id: %s)", kStreamId);
+  raw_image_publisher_.Initialize(http_server_, kRawStreamId);
+  overlay_image_publisher_.Initialize(http_server_, kOverlayStreamId);
+  LOG_INFO("ImagePublisher initialized (stream_id: %s)", kRawStreamId);
+  LOG_INFO("ImagePublisher initialized (stream_id: %s)", kOverlayStreamId);
+
+  detector_ = detector::DetectorFactory::CreateDetector("yolo26");
+  if (!detector_) {
+    LOG_WARN("Failed to create YOLO26 detector. Overlay stream will be skipped.");
+  } else {
+    detector::DetectorParameter detector_param;
+    detector_param.model_path = YOONVISION_YOLO26_MODEL_PATH;
+    detector_param.model_type = "yolo26";
+    detector_param.confidence_threshold = 0.5f;
+    detector_param.nms_threshold = 0.45f;
+    detector_param.max_detections = 200;
+    detector_param.input_width = 640;
+    detector_param.input_height = 640;
+    detector_param.letterbox = true;
+    detector_param.normalize = true;
+    detector_param.color_space = detector::ColorSpace::kRGB;
+    detector_param.provider = compute::Processor::Provider::CPU;
+
+    if (!std::filesystem::exists(detector_param.model_path)) {
+      LOG_WARN("YOLO26 model file not found: %s. Overlay stream will be skipped.",
+               detector_param.model_path.c_str());
+      detector_.reset();
+    } else if (!detector_->Initialize(detector_param)) {
+      LOG_WARN("YOLO26 detector initialization failed. Overlay stream will be "
+               "skipped.");
+      detector_.reset();
+    } else {
+      LOG_INFO("YOLO26 detector initialized with model: %s",
+               detector_param.model_path.c_str());
+    }
+  }
+
+  subscriber_ = std::make_shared<FramePublisherSubscriber>(
+      raw_image_publisher_, &overlay_image_publisher_, detector_.get(),
+      kInferenceIntervalFrames);
+  camera_->Subscribe(subscriber_);
+  LOG_INFO("Camera initialized and subscriber registered");
 
   initialized_ = true;
   LOG_INFO("VisionApplication initialized successfully");

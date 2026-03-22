@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "yoondetector/detector.hpp"
+#include "yoondetector/yolo26/coco_class_names.hpp"
 
 namespace yoonvision {
 namespace detector {
@@ -98,7 +99,7 @@ inline Detection ToDetection(const BoxCxCyWh& box, float score, int class_id) {
   det.bbox.h = box.h;
   det.score = score;
   det.class_id = class_id;
-  det.class_name = "class_" + std::to_string(class_id);
+  det.class_name = ClassNameForYoloDetection(class_id);
   return det;
 }
 

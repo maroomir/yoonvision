@@ -5,6 +5,7 @@
 #include <string>
 
 #include "yooncamera/camera.hpp"
+#include "yoondetector/detector.hpp"
 #include "yoonvision_http/http_publisher.hpp"
 #include "yoonvision_http/http_server.hpp"
 
@@ -24,7 +25,9 @@ class VisionApplication {
   camera::IFrameSubscriber::Ptr subscriber_;
 
   std::shared_ptr<http::HTTPServer> http_server_;
-  http::ImagePublisher image_publisher_;
+  http::ImagePublisher raw_image_publisher_;
+  http::ImagePublisher overlay_image_publisher_;
+  detector::DetectorPtr detector_;
 
   bool initialized_;
 };
